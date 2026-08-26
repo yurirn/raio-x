@@ -29,7 +29,6 @@ export default function LoginPage() {
       <div className="login-brand">
         <Image src="/logo-vivo.webp" alt="Vivo" width={128} height={40} priority />
         <span aria-hidden="true" />
-        <strong>Raio X</strong>
       </div>
       <div className="login-copy">
         <span className="login-kicker">Portal operacional</span>
