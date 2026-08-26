@@ -1,0 +1,174 @@
+from collections import defaultdict
+from datetime import date
+
+from fastapi import HTTPException
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from app.models import (
+    Attendance,
+    AuditLog,
+    Consultant,
+    Coordinator,
+    Reason,
+    Regional,
+    Store,
+    YesNo,
+)
+
+
+def attendance_snapshot(item: Attendance) -> dict:
+    return {
+        key: (value.value if isinstance(value, YesNo) else value)
+        for key, value in {
+            "date": item.date.isoformat(),
+            "password_number": item.password_number,
+            "cpf_cnpj": item.cpf_cnpj,
+            "current_plan": item.current_plan,
+            "ftth_available": item.ftth_available,
+            "available_for_sale": item.available_for_sale,
+            "sale": item.sale,
+            "reason_id": item.reason_id,
+            "consultant_id": item.consultant_id,
+            "store_id": item.store_id,
+            "coordinator_id": item.coordinator_id,
+            "regional_id": item.regional_id,
+        }.items()
+    }
+
+
+def add_audit(
+    session: Session,
+    entity: str,
+    entity_id: int,
+    action: str,
+    user_id: int,
+    before: dict | None = None,
+    after: dict | None = None,
+) -> None:
+    session.add(
+        AuditLog(
+            entity=entity,
+            entity_id=entity_id,
+            action=action,
+            user_id=user_id,
+            before=before,
+            after=after,
+        )
+    )
+
+
+def validate_hierarchy(
+    session: Session, regional_id: int, coordinator_id: int, store_id: int, consultant_id: int
+) -> None:
+    regional = session.get(Regional, regional_id)
+    coordinator = session.get(Coordinator, coordinator_id)
+    store = session.get(Store, store_id)
+    consultant = session.get(Consultant, consultant_id)
+    if not all([regional, coordinator, store, consultant]):
+        raise HTTPException(
+            status_code=422, detail="Regional, coordenador, loja ou consultor inválido"
+        )
+    if not all([regional.active, coordinator.active, store.active, consultant.active]):
+        raise HTTPException(
+            status_code=422, detail="Não é permitido lançar para um cadastro inativo"
+        )
+    if (
+        coordinator.regional_id != regional_id
+        or store.coordinator_id != coordinator_id
+        or consultant.store_id != store_id
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="A hierarquia Regional > Coordenador > Loja > Consultor é inválida",
+        )
+
+
+def validate_reason(session: Session, sale: YesNo, reason_id: int | None) -> None:
+    if sale == YesNo.NO and not reason_id:
+        raise HTTPException(status_code=422, detail="Motivo é obrigatório quando não houver venda")
+    if sale == YesNo.YES and reason_id:
+        raise HTTPException(status_code=422, detail="Motivo deve ficar vazio quando houver venda")
+    if reason_id:
+        reason = session.get(Reason, reason_id)
+        if not reason or not reason.active:
+            raise HTTPException(status_code=422, detail="Motivo inválido ou inativo")
+
+
+def next_password(session: Session, store_id: int, day: date) -> int:
+    value = session.scalar(
+        select(func.coalesce(func.max(Attendance.password_number), 0)).where(
+            Attendance.store_id == store_id, Attendance.date == day
+        )
+    )
+    return int(value) + 1
+
+
+def percentage(numerator: int, denominator: int) -> float:
+    return round((numerator / denominator * 100) if denominator else 0, 2)
+
+
+def availability_real(total: int, available_for_sale: int) -> float:
+    """Centralized business rule. Initial rule: eligible-for-sale / total attendances."""
+    return percentage(available_for_sale, total)
+
+
+def aggregate_metrics(rows: list[tuple]) -> dict:
+    """Rows contain consultant id/name, date, FTTH, availability and sale."""
+    people: dict[int, dict] = {}
+    daily: dict[str, dict] = defaultdict(lambda: {"passwords": 0, "sales": 0, "available": 0})
+    for consultant_id, name, day, ftth, available, sale in rows:
+        item = people.setdefault(
+            consultant_id,
+            {
+                "consultant_id": consultant_id,
+                "consultant": name,
+                "passwords": 0,
+                "ftth_available": 0,
+                "available_for_sale": 0,
+                "sales": 0,
+            },
+        )
+        item["passwords"] += 1
+        item["ftth_available"] += ftth == YesNo.YES
+        item["available_for_sale"] += available == YesNo.YES
+        item["sales"] += sale == YesNo.YES
+        bucket = daily[day.isoformat()]
+        bucket["passwords"] += 1
+        bucket["sales"] += sale == YesNo.YES
+        bucket["available"] += available == YesNo.YES
+    total = {
+        "passwords": sum(x["passwords"] for x in people.values()),
+        "ftth_available": sum(x["ftth_available"] for x in people.values()),
+        "available_for_sale": sum(x["available_for_sale"] for x in people.values()),
+        "sales": sum(x["sales"] for x in people.values()),
+    }
+    performance = []
+    for item in people.values():
+        item |= {
+            "share_passwords": percentage(item["passwords"], total["passwords"]),
+            "availability_percentage": percentage(
+                item["available_for_sale"], item["ftth_available"]
+            ),
+            "availability_real_percentage": availability_real(
+                item["passwords"], item["available_for_sale"]
+            ),
+            "conversion": percentage(item["sales"], item["available_for_sale"]),
+        }
+        performance.append(item)
+    performance.sort(key=lambda item: (-item["sales"], item["consultant"].lower()))
+    for position, item in enumerate(performance, 1):
+        item["position"] = position
+    charts = [
+        {"date": day, **values, "conversion": percentage(values["sales"], values["available"])}
+        for day, values in sorted(daily.items())
+    ]
+    return {
+        "cards": {
+            **total,
+            "conversion": percentage(total["sales"], total["available_for_sale"]),
+            "active_consultants": len(people),
+        },
+        "performance": performance,
+        "daily": charts,
+    }
