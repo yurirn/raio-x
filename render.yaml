@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: raio-x-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRE_MINUTES
+        value: "480"
+      - key: CORS_ORIGINS
+        value: https://vi-br.io,https://www.vi-br.io
