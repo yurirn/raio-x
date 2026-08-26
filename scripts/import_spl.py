@@ -18,6 +18,16 @@ def slugify(value: str) -> str:
     return re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", normalized.lower())).strip("-")
 
 
+def store_login(store_name: str) -> str:
+    """Create the short username used by a store, e.g. ``maua``."""
+    without_code = re.sub(r"^\s*\d+\s*-\s*", "", store_name)
+    without_suffix = re.sub(r"\s*-\s*comm\s*$", "", without_code, flags=re.IGNORECASE)
+    login = slugify(without_suffix).replace("-", "")
+    if not login:
+        raise ValueError(f"Não foi possível gerar um login para a loja: {store_name}")
+    return login
+
+
 def get_or_create(session, model, **criteria):
     item = session.scalar(select(model).filter_by(**criteria))
     if item is None:
@@ -43,7 +53,6 @@ def rows_from_workbook(path: Path) -> list[tuple[str, str, str]]:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("workbook", type=Path)
-    parser.add_argument("--initial-password", required=True)
     args = parser.parse_args()
 
     rows = rows_from_workbook(args.workbook)
@@ -71,14 +80,18 @@ def main() -> None:
             imported_consultants += 1
 
         created_users = 0
+        store_logins: set[str] = set()
         for (_, store_name), store in store_by_key.items():
-            email = f"{slugify(store_name)}@raiox.local"
-            user = session.scalar(select(User).where(User.email == email))
+            login = store_login(store_name)
+            if login in store_logins:
+                raise ValueError(f"Login duplicado gerado para a loja: {store_name}")
+            store_logins.add(login)
+            user = session.scalar(select(User).where(User.email == login))
             if user is None:
                 user = User(
                     name=f"Loja {store_name}",
-                    email=email,
-                    password_hash=hash_password(args.initial_password),
+                    email=login,
+                    password_hash=hash_password(f"{login}@321"),
                     role=Role.OPERATOR,
                     active=True,
                 )

@@ -26,11 +26,11 @@ Troque essa senha imediatamente e nunca use essa credencial fora do ambiente loc
 
 ## Importar lojas e consultores da SPL
 
-O importador espera uma planilha sem cabeçalho, com Consultor na coluna A, Loja na B e Coordenador na C. Ele cria uma conta `OPERATOR` por loja, vinculada somente àquela loja. O e-mail segue o nome normalizado da loja, por exemplo `08-maua-comm@raiox.local`.
+O importador espera uma planilha sem cabeçalho, com Consultor na coluna A, Loja na B e Coordenador na C. Ele cria uma conta `OPERATOR` por loja, vinculada somente àquela loja. O login remove o código e o sufixo `COMM`: por exemplo, `08 - MAUA - COMM` usa `maua` e a senha inicial `maua@321`.
 
 ```bash
 docker cp "C:/caminho/arquivo.xlsx" felipevivo-api-1:/tmp/spl.xlsx
-docker compose exec api python -m scripts.import_spl /tmp/spl.xlsx --initial-password "defina-uma-senha-inicial"
+docker compose exec api python -m scripts.import_spl /tmp/spl.xlsx
 ```
 
 ## Arquitetura e regras

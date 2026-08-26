@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
+import { Eye, EyeOff, LockKeyhole, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { Button, Field } from "@/components/ui";
@@ -9,7 +9,7 @@ import { api, getToken, setToken } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("admin@raiox.local");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -37,7 +37,7 @@ export default function LoginPage() {
         <p>Entre para acompanhar os indicadores e registrar os resultados da sua operação.</p>
       </div>
       <form className="login-form" onSubmit={submit}>
-        <Field label="E-mail" htmlFor="email" required><div className="input-with-icon"><Mail size={18} /><input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" required /></div></Field>
+        <Field label="Login" htmlFor="email" required><div className="input-with-icon"><UserRound size={18} /><input id="email" type="text" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" placeholder="Ex.: maua" required /></div></Field>
         <Field label="Senha" htmlFor="password" required><div className="input-with-icon"><LockKeyhole size={18} /><input id="password" type={visible ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" minLength={8} required /><button type="button" onClick={() => setVisible(!visible)} aria-label={visible ? "Ocultar senha" : "Mostrar senha"}>{visible ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></Field>
         {error && <p className="form-error" role="alert">{error}</p>}
         <Button type="submit" busy={busy}>Entrar</Button>

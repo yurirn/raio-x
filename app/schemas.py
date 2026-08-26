@@ -5,14 +5,17 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from app.models import Role, YesNo
 
-INTERNAL_EMAIL_PATTERN = re.compile(r"^[^\s@\\]+@[^\s@\\]+$")
+LOGIN_PATTERN = re.compile(r"^[a-z0-9._@-]+$")
 
 
-def normalize_email(value: str) -> str:
+def normalize_login(value: str) -> str:
     normalized = value.strip().lower()
-    if not INTERNAL_EMAIL_PATTERN.fullmatch(normalized):
-        raise ValueError("Informe um e-mail válido, sem espaços ou caracteres de escape")
+    if not LOGIN_PATTERN.fullmatch(normalized):
+        raise ValueError("Informe um login válido, sem espaços ou caracteres especiais")
     return normalized
+
+
+normalize_email = normalize_login
 
 
 class ORMModel(BaseModel):
@@ -26,7 +29,7 @@ class LoginIn(BaseModel):
     @field_validator("email")
     @classmethod
     def validate_email(cls, value: str) -> str:
-        return normalize_email(value)
+        return normalize_login(value)
 
 
 class TokenOut(BaseModel):

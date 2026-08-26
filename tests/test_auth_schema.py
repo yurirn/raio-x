@@ -7,13 +7,14 @@ from app.main import app
 from app.schemas import AttendanceIn, LoginIn
 
 
-def test_login_accepts_the_seeded_internal_email():
+def test_login_accepts_an_email_or_short_store_login():
     payload = LoginIn(email="admin@raiox.local", password="TroqueEstaSenha123")
 
     assert payload.email == "admin@raiox.local"
+    assert LoginIn(email="Maua", password="maua@321").email == "maua"
 
 
-def test_login_rejects_an_email_with_an_invalid_separator():
+def test_login_rejects_invalid_characters():
     with pytest.raises(ValidationError):
         LoginIn(email="admin\\@raiox.local", password="TroqueEstaSenha123")
 
