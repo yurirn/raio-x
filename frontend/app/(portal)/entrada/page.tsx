@@ -4,7 +4,7 @@ import { CheckCircle2, Pencil, Plus, RefreshCw, Search, Trash2 } from "lucide-re
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import type { Attendance, NamedEntity, StoreContext, User, YesNo } from "@/lib/types";
-import { Button, Card, EmptyState, Field, PageHeader, StatusBadge } from "@/components/ui";
+import { Button, Card, EmptyState, Field, PageHeader, SearchableSelect, StatusBadge } from "@/components/ui";
 
 const today = new Date().toISOString().slice(0, 10);
 const plans = ["VIVO TOTAL", "PURO", "CONTROLE", "FIBRA AVULSO"];
@@ -60,18 +60,18 @@ export default function EntryPage() {
     <Card><div className="card-body">
       <div className="context-grid">
         <Field label="Data" htmlFor="entry-date" required><input id="entry-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
-        <Field label="Regional" htmlFor="entry-regional" required>{storeContext ? <input id="entry-regional" value={storeContext.regional_name} readOnly /> : <select id="entry-regional" value={regional} onChange={(e) => setRegional(e.target.value)}><option value="">Selecione</option>{regionals.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>}</Field>
-        <Field label="Coordenador" htmlFor="entry-coordinator" required>{storeContext ? <input id="entry-coordinator" value={storeContext.coordinator_name} readOnly /> : <select id="entry-coordinator" value={coordinator} disabled={!regional} onChange={(e) => setCoordinator(e.target.value)}><option value="">Selecione</option>{coordinators.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>}</Field>
-        <Field label="Loja" htmlFor="entry-store" required>{storeContext ? <input id="entry-store" value={storeContext.store_name} readOnly /> : <select id="entry-store" value={store} disabled={!coordinator} onChange={(e) => setStore(e.target.value)}><option value="">Selecione</option>{stores.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>}</Field>
+        <Field label="Regional" htmlFor="entry-regional" required>{storeContext ? <input id="entry-regional" value={storeContext.regional_name} readOnly /> : <SearchableSelect id="entry-regional" value={regional} onChange={setRegional} options={regionals.map((item) => ({ value: String(item.id), label: item.name }))} required />}</Field>
+        <Field label="Coordenador" htmlFor="entry-coordinator" required>{storeContext ? <input id="entry-coordinator" value={storeContext.coordinator_name} readOnly /> : <SearchableSelect id="entry-coordinator" value={coordinator} onChange={setCoordinator} disabled={!regional} options={coordinators.map((item) => ({ value: String(item.id), label: item.name }))} required />}</Field>
+        <Field label="Loja" htmlFor="entry-store" required>{storeContext ? <input id="entry-store" value={storeContext.store_name} readOnly /> : <SearchableSelect id="entry-store" value={store} onChange={setStore} disabled={!coordinator} options={stores.map((item) => ({ value: String(item.id), label: item.name }))} required />}</Field>
       </div>
       <div className="section-divider"><span>{editing ? "Editando atendimento" : "Novo atendimento"}</span></div>
       <form onSubmit={submit}>
         <div className="form-grid">
           <Field label="Senha" htmlFor="password-number" required><input id="password-number" type="number" min="1" value={form.password_number} onChange={(e) => update("password_number", e.target.value)} inputMode="numeric" required /></Field>
           <Field label="CPF/CNPJ" htmlFor="cpf" hint="Zeros à esquerda serão preservados." required><input id="cpf" value={form.cpf_cnpj} onChange={(e) => update("cpf_cnpj", e.target.value)} inputMode="numeric" autoComplete="off" maxLength={18} required /></Field>
-          <Field label="Plano atual" htmlFor="plan"><select id="plan" value={form.current_plan} onChange={(e) => update("current_plan", e.target.value)}><option value="">Selecione</option>{plans.map((plan) => <option key={plan} value={plan}>{plan}</option>)}</select></Field>
-          <Field label="Consultor" htmlFor="entry-consultant" required><select id="entry-consultant" value={form.consultant_id} disabled={!store} onChange={(e) => update("consultant_id", e.target.value)} required><option value="">Selecione</option>{consultants.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
-          <Field label="Motivo" htmlFor="reason" required={form.sale === "NO"}><select id="reason" value={form.reason_id} disabled={form.sale === "YES"} onChange={(e) => update("reason_id", e.target.value)} required={form.sale === "NO"}><option value="">{form.sale === "YES" ? "Não se aplica" : "Selecione"}</option>{reasons.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
+          <Field label="Plano atual" htmlFor="plan"><SearchableSelect id="plan" value={form.current_plan} onChange={(value) => update("current_plan", value)} options={plans.map((plan) => ({ value: plan, label: plan }))} /></Field>
+          <Field label="Consultor" htmlFor="entry-consultant" required><SearchableSelect id="entry-consultant" value={form.consultant_id} onChange={(value) => update("consultant_id", value)} disabled={!store} options={consultants.map((item) => ({ value: String(item.id), label: item.name }))} required /></Field>
+          <Field label="Motivo" htmlFor="reason" required={form.sale === "NO"}><SearchableSelect id="reason" value={form.reason_id} onChange={(value) => update("reason_id", value)} disabled={form.sale === "YES"} placeholder={form.sale === "YES" ? "Não se aplica" : "Selecione"} options={reasons.map((item) => ({ value: String(item.id), label: item.name }))} required={form.sale === "NO"} /></Field>
           <YesNoField label="Possui disponibilidade FTTH?" name="ftth" value={form.ftth_available} onChange={(value) => update("ftth_available", value)} />
           <YesNoField label="Disponível para venda?" name="available" value={form.available_for_sale} onChange={(value) => update("available_for_sale", value)} />
           <YesNoField label="Venda realizada?" name="sale" value={form.sale} onChange={(value) => { update("sale", value); if (value === "YES") update("reason_id", ""); }} />

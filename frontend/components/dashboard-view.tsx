@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api, download } from "@/lib/api";
 import type { DashboardData, NamedEntity } from "@/lib/types";
-import { Button, Card, EmptyState, Field, PageHeader, Skeleton } from "./ui";
+import { Button, Card, EmptyState, Field, PageHeader, SearchableSelect, Skeleton } from "./ui";
 
 const today = new Date().toISOString().slice(0, 10);
 const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
@@ -51,10 +51,10 @@ export function DashboardView({ overview = false }: { overview?: boolean }) {
     {!overview && <Card className="filters" aria-label="Filtros do consolidado">
       <Field label="Data inicial" htmlFor="start"><input id="start" type="date" value={start} onChange={(e) => setStart(e.target.value)} /></Field>
       <Field label="Data final" htmlFor="end"><input id="end" type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></Field>
-      <Field label="Regional" htmlFor="regional"><select id="regional" value={regional} onChange={(e) => setRegional(e.target.value)}><option value="">Todas</option>{regionals.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
-      <Field label="Coordenador" htmlFor="coordinator"><select id="coordinator" value={coordinator} onChange={(e) => setCoordinator(e.target.value)}><option value="">Todos</option>{coordinators.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
-      <Field label="Loja" htmlFor="store"><select id="store" value={store} onChange={(e) => setStore(e.target.value)}><option value="">Todas</option>{stores.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
-      <Field label="Consultor" htmlFor="consultant"><select id="consultant" value={consultant} disabled={!store} onChange={(e) => setConsultant(e.target.value)}><option value="">Todos</option>{consultants.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
+      <Field label="Regional" htmlFor="regional"><SearchableSelect id="regional" value={regional} onChange={setRegional} placeholder="Todas" options={regionals.map((item) => ({ value: String(item.id), label: item.name }))} /></Field>
+      <Field label="Coordenador" htmlFor="coordinator"><SearchableSelect id="coordinator" value={coordinator} onChange={setCoordinator} placeholder="Todos" options={coordinators.map((item) => ({ value: String(item.id), label: item.name }))} /></Field>
+      <Field label="Loja" htmlFor="store"><SearchableSelect id="store" value={store} onChange={setStore} placeholder="Todas" options={stores.map((item) => ({ value: String(item.id), label: item.name }))} /></Field>
+      <Field label="Consultor" htmlFor="consultant"><SearchableSelect id="consultant" value={consultant} onChange={setConsultant} disabled={!store} placeholder="Todos" options={consultants.map((item) => ({ value: String(item.id), label: item.name }))} /></Field>
     </Card>}
     {error && <p className="form-error" role="alert">{error} <button onClick={load}>Tentar novamente</button></p>}
     {loading ? <div className="metrics-grid">{Array.from({ length: 6 }, (_, index) => <Skeleton key={index} height={126} />)}</div> : <div className="metrics-grid">
