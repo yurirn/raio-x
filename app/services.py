@@ -22,6 +22,8 @@ SALE_REASON_NAMES = {
     "TOTALIZAÇÃO",
     "PRÉ PAGO",
     "OUTRAS OPERADORAS",
+    "FIBRA AVULSA",
+    "PJ",
 }
 
 

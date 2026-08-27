@@ -41,6 +41,8 @@ def main():
             "TOTALIZAÇÃO",
             "PRÉ PAGO",
             "OUTRAS OPERADORAS",
+            "FIBRA AVULSA",
+            "PJ",
         ):
             get_or_create(session, Reason, name=name)
         admin = session.scalar(select(User).where(User.email == "admin@raiox.local"))

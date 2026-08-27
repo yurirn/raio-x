@@ -14,6 +14,8 @@ const saleReasonNames = new Set([
   "TOTALIZAÇÃO",
   "PRÉ PAGO",
   "OUTRAS OPERADORAS",
+  "FIBRA AVULSA",
+  "PJ",
 ]);
 const initialForm = { password_number: "", cpf_cnpj: "", current_plan: "", ftth_available: "YES" as YesNo, available_for_sale: "YES" as YesNo, sale: "NO" as YesNo, reason_id: "", consultant_id: "" };
 

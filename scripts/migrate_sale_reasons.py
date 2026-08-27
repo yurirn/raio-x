@@ -12,6 +12,8 @@ SALE_REASONS = (
     "TOTALIZAÇÃO",
     "PRÉ PAGO",
     "OUTRAS OPERADORAS",
+    "FIBRA AVULSA",
+    "PJ",
 )
 
 
