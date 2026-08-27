@@ -30,7 +30,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   function logout() { clearToken(); router.replace("/login"); }
 
-  if (!user) return <main className="boot-screen"><div className="brand-mark">RX</div><p>Preparando seu painel…</p></main>;
+  if (!user) return <main className="boot-screen"><Image className="boot-vivo" src="/logo-vivo.webp" alt="Vivo" width={128} height={40} priority /><p>Preparando seu painel…</p></main>;
   return <div className="app-shell">
     <a className="skip-link" href="#main-content">Pular para o conteúdo</a>
     <aside className={`sidebar ${open ? "is-open" : ""}`} aria-label="Navegação principal">
