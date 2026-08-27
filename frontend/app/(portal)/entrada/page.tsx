@@ -8,7 +8,13 @@ import { Button, Card, EmptyState, Field, PageHeader, SearchableSelect, StatusBa
 
 const today = new Date().toISOString().slice(0, 10);
 const plans = ["VIVO TOTAL", "PURO", "CONTROLE", "FIBRA AVULSO"];
-const saleReasonNames = new Set(["HABILITAÇÃO PRÉ/PÓS", "UPGRADE", "TOTALIZAÇÃO"]);
+const saleReasonNames = new Set([
+  "HABILITAÇÃO PRÉ/PÓS",
+  "UPGRADE",
+  "TOTALIZAÇÃO",
+  "PRÉ PAGO",
+  "OUTRAS OPERADORAS",
+]);
 const initialForm = { password_number: "", cpf_cnpj: "", current_plan: "", ftth_available: "YES" as YesNo, available_for_sale: "YES" as YesNo, sale: "NO" as YesNo, reason_id: "", consultant_id: "" };
 
 function YesNoField({ label, name, value, onChange }: { label: string; name: string; value: YesNo; onChange: (value: YesNo) => void }) {

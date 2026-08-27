@@ -6,7 +6,13 @@ from app.database import SessionLocal, engine
 from app.models import Reason
 from scripts.bootstrap import get_or_create
 
-SALE_REASONS = ("HABILITAÇÃO PRÉ/PÓS", "UPGRADE", "TOTALIZAÇÃO")
+SALE_REASONS = (
+    "HABILITAÇÃO PRÉ/PÓS",
+    "UPGRADE",
+    "TOTALIZAÇÃO",
+    "PRÉ PAGO",
+    "OUTRAS OPERADORAS",
+)
 
 
 def main():

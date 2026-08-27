@@ -16,7 +16,13 @@ from app.models import (
     YesNo,
 )
 
-SALE_REASON_NAMES = {"HABILITAÇÃO PRÉ/PÓS", "UPGRADE", "TOTALIZAÇÃO"}
+SALE_REASON_NAMES = {
+    "HABILITAÇÃO PRÉ/PÓS",
+    "UPGRADE",
+    "TOTALIZAÇÃO",
+    "PRÉ PAGO",
+    "OUTRAS OPERADORAS",
+}
 
 
 def attendance_snapshot(item: Attendance) -> dict:
