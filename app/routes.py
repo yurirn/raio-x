@@ -311,11 +311,15 @@ def dashboard_rows(
         select(
             Attendance.consultant_id,
             Consultant.name,
+            Attendance.store_id,
+            Store.name,
             Attendance.date,
             Attendance.ftth_available,
             Attendance.available_for_sale,
             Attendance.sale,
-        ).join(Consultant),
+        )
+        .join(Consultant, Attendance.consultant_id == Consultant.id)
+        .join(Store, Attendance.store_id == Store.id),
         session,
         user,
     ).where(Attendance.date.between(start_date, end_date))

@@ -114,10 +114,11 @@ def availability_real(total: int, available_for_sale: int) -> float:
 
 
 def aggregate_metrics(rows: list[tuple]) -> dict:
-    """Rows contain consultant id/name, date, FTTH, availability and sale."""
+    """Rows contain consultant/store ids and names, date, FTTH, availability and sale."""
     people: dict[int, dict] = {}
+    stores: dict[int, dict] = {}
     daily: dict[str, dict] = defaultdict(lambda: {"passwords": 0, "sales": 0, "available": 0})
-    for consultant_id, name, day, ftth, available, sale in rows:
+    for consultant_id, name, store_id, store_name, day, ftth, available, sale in rows:
         item = people.setdefault(
             consultant_id,
             {
@@ -133,6 +134,21 @@ def aggregate_metrics(rows: list[tuple]) -> dict:
         item["ftth_available"] += ftth == YesNo.YES
         item["available_for_sale"] += available == YesNo.YES
         item["sales"] += sale == YesNo.YES
+        store = stores.setdefault(
+            store_id,
+            {
+                "store_id": store_id,
+                "store": store_name,
+                "passwords": 0,
+                "ftth_available": 0,
+                "available_for_sale": 0,
+                "sales": 0,
+            },
+        )
+        store["passwords"] += 1
+        store["ftth_available"] += ftth == YesNo.YES
+        store["available_for_sale"] += available == YesNo.YES
+        store["sales"] += sale == YesNo.YES
         bucket = daily[day.isoformat()]
         bucket["passwords"] += 1
         bucket["sales"] += sale == YesNo.YES
@@ -143,22 +159,27 @@ def aggregate_metrics(rows: list[tuple]) -> dict:
         "available_for_sale": sum(x["available_for_sale"] for x in people.values()),
         "sales": sum(x["sales"] for x in people.values()),
     }
-    performance = []
-    for item in people.values():
-        item |= {
-            "share_passwords": percentage(item["passwords"], total["passwords"]),
-            "availability_percentage": percentage(
-                item["available_for_sale"], item["ftth_available"]
-            ),
-            "availability_real_percentage": availability_real(
-                item["passwords"], item["available_for_sale"]
-            ),
-            "conversion": percentage(item["sales"], item["available_for_sale"]),
-        }
-        performance.append(item)
-    performance.sort(key=lambda item: (-item["sales"], item["consultant"].lower()))
-    for position, item in enumerate(performance, 1):
-        item["position"] = position
+    def with_percentages(items: dict[int, dict], label: str) -> list[dict]:
+        performance = []
+        for item in items.values():
+            item |= {
+                "share_passwords": percentage(item["passwords"], total["passwords"]),
+                "availability_percentage": percentage(
+                    item["available_for_sale"], item["ftth_available"]
+                ),
+                "availability_real_percentage": availability_real(
+                    item["passwords"], item["available_for_sale"]
+                ),
+                "conversion": percentage(item["sales"], item["available_for_sale"]),
+            }
+            performance.append(item)
+        performance.sort(key=lambda item: (-item["sales"], item[label].lower()))
+        for position, item in enumerate(performance, 1):
+            item["position"] = position
+        return performance
+
+    performance = with_percentages(people, "consultant")
+    store_performance = with_percentages(stores, "store")
     charts = [
         {"date": day, **values, "conversion": percentage(values["sales"], values["available"])}
         for day, values in sorted(daily.items())
@@ -170,5 +191,6 @@ def aggregate_metrics(rows: list[tuple]) -> dict:
             "active_consultants": len(people),
         },
         "performance": performance,
+        "store_performance": store_performance,
         "daily": charts,
     }

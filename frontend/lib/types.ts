@@ -61,6 +61,11 @@ export interface Performance {
   position: number;
 }
 
+export interface StorePerformance extends Omit<Performance, "consultant_id" | "consultant"> {
+  store_id: number;
+  store: string;
+}
+
 export interface DashboardData {
   cards: {
     passwords: number;
@@ -71,6 +76,7 @@ export interface DashboardData {
     active_consultants: number;
   };
   performance: Performance[];
+  store_performance: StorePerformance[];
   ranking: Performance[];
   daily: Array<{ date: string; passwords: number; sales: number; available: number; conversion: number }>;
   reasons: Array<{ reason: string; count: number }>;
