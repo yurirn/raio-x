@@ -16,6 +16,8 @@ from app.models import (
     YesNo,
 )
 
+SALE_REASON_NAMES = {"HABILITAÇÃO PRÉ/PÓS", "UPGRADE", "TOTALIZAÇÃO"}
+
 
 def attendance_snapshot(item: Attendance) -> dict:
     return {
@@ -85,14 +87,15 @@ def validate_hierarchy(
 
 
 def validate_reason(session: Session, sale: YesNo, reason_id: int | None) -> None:
-    if sale == YesNo.NO and not reason_id:
-        raise HTTPException(status_code=422, detail="Motivo é obrigatório quando não houver venda")
-    if sale == YesNo.YES and reason_id:
-        raise HTTPException(status_code=422, detail="Motivo deve ficar vazio quando houver venda")
-    if reason_id:
-        reason = session.get(Reason, reason_id)
-        if not reason or not reason.active:
-            raise HTTPException(status_code=422, detail="Motivo inválido ou inativo")
+    if not reason_id:
+        raise HTTPException(status_code=422, detail="Motivo é obrigatório para o atendimento")
+    reason = session.get(Reason, reason_id)
+    if not reason or not reason.active:
+        raise HTTPException(status_code=422, detail="Motivo inválido ou inativo")
+    if sale == YesNo.YES and reason.name not in SALE_REASON_NAMES:
+        raise HTTPException(status_code=422, detail="Selecione um motivo de venda válido")
+    if sale == YesNo.NO and reason.name in SALE_REASON_NAMES:
+        raise HTTPException(status_code=422, detail="Selecione um motivo de não venda válido")
 
 
 def next_password(session: Session, store_id: int, day: date) -> int:

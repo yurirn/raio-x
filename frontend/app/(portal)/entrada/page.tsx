@@ -8,6 +8,7 @@ import { Button, Card, EmptyState, Field, PageHeader, SearchableSelect, StatusBa
 
 const today = new Date().toISOString().slice(0, 10);
 const plans = ["VIVO TOTAL", "PURO", "CONTROLE", "FIBRA AVULSO"];
+const saleReasonNames = new Set(["HABILITAÇÃO PRÉ/PÓS", "UPGRADE", "TOTALIZAÇÃO"]);
 const initialForm = { password_number: "", cpf_cnpj: "", current_plan: "", ftth_available: "YES" as YesNo, available_for_sale: "YES" as YesNo, sale: "NO" as YesNo, reason_id: "", consultant_id: "" };
 
 function YesNoField({ label, name, value, onChange }: { label: string; name: string; value: YesNo; onChange: (value: YesNo) => void }) {
@@ -38,10 +39,10 @@ export default function EntryPage() {
   async function submit(event: FormEvent) {
     event.preventDefault(); setError(""); setNotice("");
     if (!regional || !coordinator || !store) { setError("Selecione Regional, Coordenador e Loja."); return; }
-    if (form.sale === "NO" && !form.reason_id) { setError("Selecione o motivo da não venda."); return; }
+    if (!form.reason_id) { setError(`Selecione o motivo ${form.sale === "YES" ? "da venda" : "da não venda"}.`); return; }
     setBusy(true);
     try {
-      const payload = { ...form, password_number: Number(form.password_number), reason_id: form.sale === "NO" ? Number(form.reason_id) : null, consultant_id: Number(form.consultant_id) };
+      const payload = { ...form, password_number: Number(form.password_number), reason_id: Number(form.reason_id), consultant_id: Number(form.consultant_id) };
       if (editing) await api(`/attendances/${editing}`, { method: "PATCH", body: JSON.stringify(payload) });
       else await api("/attendances", { method: "POST", body: JSON.stringify({ ...payload, date, regional_id: Number(regional), coordinator_id: Number(coordinator), store_id: Number(store) }) });
       setForm(initialForm); setEditing(null); setNotice(editing ? "Atendimento atualizado." : "Atendimento registrado."); await loadDay();
@@ -54,6 +55,7 @@ export default function EntryPage() {
 
   const consultantName = useMemo(() => Object.fromEntries(consultants.map((item) => [item.id, item.name])), [consultants]);
   const reasonName = useMemo(() => Object.fromEntries(reasons.map((item) => [item.id, item.name])), [reasons]);
+  const visibleReasons = reasons.filter((item) => form.sale === "YES" ? saleReasonNames.has(item.name) : !saleReasonNames.has(item.name));
   const filtered = items.filter((item) => `${item.password_number} ${item.cpf_cnpj} ${consultantName[item.consultant_id] ?? ""}`.toLowerCase().includes(search.toLowerCase()));
   return <>
     <PageHeader eyebrow="Operação do dia" title="Entrada de dados" description="Registre cada atendimento com poucos cliques. A estrutura selecionada permanece para o próximo lançamento." />
@@ -71,10 +73,10 @@ export default function EntryPage() {
           <Field label="CPF/CNPJ" htmlFor="cpf" hint="Zeros à esquerda serão preservados." required><input id="cpf" value={form.cpf_cnpj} onChange={(e) => update("cpf_cnpj", e.target.value)} inputMode="numeric" autoComplete="off" maxLength={18} required /></Field>
           <Field label="Plano atual" htmlFor="plan"><SearchableSelect id="plan" value={form.current_plan} onChange={(value) => update("current_plan", value)} options={plans.map((plan) => ({ value: plan, label: plan }))} /></Field>
           <Field label="Consultor" htmlFor="entry-consultant" required><SearchableSelect id="entry-consultant" value={form.consultant_id} onChange={(value) => update("consultant_id", value)} disabled={!store} options={consultants.map((item) => ({ value: String(item.id), label: item.name }))} required /></Field>
-          <Field label="Motivo" htmlFor="reason" required={form.sale === "NO"}><SearchableSelect id="reason" value={form.reason_id} onChange={(value) => update("reason_id", value)} disabled={form.sale === "YES"} placeholder={form.sale === "YES" ? "Não se aplica" : "Selecione"} options={reasons.map((item) => ({ value: String(item.id), label: item.name }))} required={form.sale === "NO"} /></Field>
+          <Field label={form.sale === "YES" ? "Motivo da venda" : "Motivo da não venda"} htmlFor="reason" required><SearchableSelect id="reason" value={form.reason_id} onChange={(value) => update("reason_id", value)} options={visibleReasons.map((item) => ({ value: String(item.id), label: item.name }))} required /></Field>
           <YesNoField label="Possui disponibilidade FTTH?" name="ftth" value={form.ftth_available} onChange={(value) => update("ftth_available", value)} />
           <YesNoField label="Disponível para venda?" name="available" value={form.available_for_sale} onChange={(value) => update("available_for_sale", value)} />
-          <YesNoField label="Venda realizada?" name="sale" value={form.sale} onChange={(value) => { update("sale", value); if (value === "YES") update("reason_id", ""); }} />
+          <YesNoField label="Venda realizada?" name="sale" value={form.sale} onChange={(value) => { update("sale", value); update("reason_id", ""); }} />
         </div>
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="form-actions">{editing && <Button type="button" variant="ghost" onClick={() => { setEditing(null); setForm(initialForm); }}>Cancelar edição</Button>}<Button type="submit" busy={busy} disabled={!store}><Plus size={18} /> {editing ? "Salvar alterações" : "Registrar atendimento"}</Button></div>

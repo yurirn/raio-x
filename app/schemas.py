@@ -115,10 +115,8 @@ class AttendanceIn(BaseModel):
 
     @model_validator(mode="after")
     def reason_rules(self):
-        if self.sale == YesNo.NO and not self.reason_id:
-            raise ValueError("Motivo é obrigatório quando não houver venda")
-        if self.sale == YesNo.YES and self.reason_id:
-            raise ValueError("Motivo deve ficar vazio quando houver venda")
+        if not self.reason_id:
+            raise ValueError("Motivo é obrigatório para o atendimento")
         return self
 
 

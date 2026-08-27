@@ -36,6 +36,9 @@ def main():
             "Cancelamento",
             "Configurar App",
             "Outros",
+            "HABILITAÇÃO PRÉ/PÓS",
+            "UPGRADE",
+            "TOTALIZAÇÃO",
         ):
             get_or_create(session, Reason, name=name)
         admin = session.scalar(select(User).where(User.email == "admin@raiox.local"))

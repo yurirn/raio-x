@@ -130,10 +130,6 @@ class Attendance(Timestamped, Base):
         UniqueConstraint(
             "store_id", "date", "password_number", name="uq_attendance_store_day_password"
         ),
-        CheckConstraint(
-            "(sale = 'YES' AND reason_id IS NULL) OR (sale = 'NO' AND reason_id IS NOT NULL)",
-            name="ck_reason_for_no_sale",
-        ),
     )
 
 
