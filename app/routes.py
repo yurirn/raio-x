@@ -306,6 +306,7 @@ def dashboard_rows(
     coordinator_id: int | None,
     store_id: int | None,
     consultant_id: int | None,
+    current_plan: str | None = None,
 ):
     query = scoped_attendances(
         select(
@@ -328,6 +329,7 @@ def dashboard_rows(
         (Attendance.coordinator_id, coordinator_id),
         (Attendance.store_id, store_id),
         (Attendance.consultant_id, consultant_id),
+        (Attendance.current_plan, current_plan),
     ]
     return session.execute(
         query.where(*[field == value for field, value in filters if value is not None])
@@ -342,6 +344,7 @@ def consolidated(
     coordinator_id: int | None = None,
     store_id: int | None = None,
     consultant_id: int | None = None,
+    current_plan: str | None = None,
     ranking_by: str = Query("sales", pattern="^(sales|conversion|passwords|availability)$"),
     session: Session = Depends(get_session),
     user: User = Depends(current_user),
@@ -360,6 +363,7 @@ def consolidated(
             coordinator_id,
             store_id,
             consultant_id,
+            current_plan,
         )
     )
     metric = {
@@ -385,6 +389,7 @@ def consolidated(
         (Attendance.coordinator_id, coordinator_id),
         (Attendance.store_id, store_id),
         (Attendance.consultant_id, consultant_id),
+        (Attendance.current_plan, current_plan),
     ]:
         if value is not None:
             reasons_query = reasons_query.where(field == value)
@@ -402,6 +407,7 @@ def consolidated(
         "coordinator_id": coordinator_id,
         "store_id": store_id,
         "consultant_id": consultant_id,
+        "current_plan": current_plan,
     }
     return data
 
@@ -419,7 +425,7 @@ def consultant_detail(
         raise HTTPException(status_code=404, detail="Consultor não encontrado")
     assert_store_access(session, user, consultant.store_id)
     metrics = aggregate_metrics(
-        dashboard_rows(session, user, start_date, end_date, None, None, None, consultant_id)
+        dashboard_rows(session, user, start_date, end_date, None, None, None, consultant_id, None)
     )
     rows = session.scalars(
         scoped_attendances(select(Attendance), session, user)
@@ -453,6 +459,7 @@ def export_attendances(
     end_date: date,
     store_id: int | None = None,
     consultant_id: int | None = None,
+    current_plan: str | None = None,
     session: Session = Depends(get_session),
     user: User = Depends(current_user),
 ):
@@ -512,6 +519,7 @@ def export_consolidated(
     coordinator_id: int | None = None,
     store_id: int | None = None,
     consultant_id: int | None = None,
+    current_plan: str | None = None,
     session: Session = Depends(get_session),
     user: User = Depends(current_user),
 ):
@@ -525,6 +533,7 @@ def export_consolidated(
             coordinator_id,
             store_id,
             consultant_id,
+            current_plan,
         )
     )
     workbook = Workbook()

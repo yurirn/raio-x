@@ -11,6 +11,7 @@ const today = new Date().toISOString().slice(0, 10);
 const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
 const colors = ["#0f766e", "#0891b2", "#2563eb", "#7c3aed", "#b45309", "#64748b"];
 const brDate = (value: string) => value.split("-").reverse().join("/");
+const currentPlans = ["Pre Pago", "Controle ate R$60,00", "Controle acima R$60,00", "Vivo Total", "Pos pago", "Fibra avulsa", "Outras Operadoras"];
 
 function Metric({ label, value, icon: Icon }: { label: string; value: string | number; icon: typeof Activity }) {
   return <Card className="metric-card"><span className="metric-icon"><Icon size={19} /></span><span className="metric-label">{label}</span><strong className="metric-value">{value}</strong></Card>;
@@ -36,6 +37,7 @@ export function DashboardView({ overview = false }: { overview?: boolean }) {
   const [coordinator, setCoordinator] = useState("");
   const [store, setStore] = useState("");
   const [consultant, setConsultant] = useState("");
+  const [currentPlan, setCurrentPlan] = useState("");
   const [regionals, setRegionals] = useState<NamedEntity[]>([]);
   const [coordinators, setCoordinators] = useState<NamedEntity[]>([]);
   const [stores, setStores] = useState<NamedEntity[]>([]);
@@ -53,8 +55,9 @@ export function DashboardView({ overview = false }: { overview?: boolean }) {
     const params = new URLSearchParams({ start_date: start, end_date: end });
     if (regional) params.set("regional_id", regional); if (coordinator) params.set("coordinator_id", coordinator);
     if (store) params.set("store_id", store); if (consultant) params.set("consultant_id", consultant);
+    if (currentPlan) params.set("current_plan", currentPlan);
     return params.toString();
-  }, [start, end, regional, coordinator, store, consultant]);
+  }, [start, end, regional, coordinator, store, consultant, currentPlan]);
   const load = useCallback(async () => { setLoading(true); setError(""); try { setData(await api<DashboardData>(`/dashboard/consolidated?${query}`)); } catch (reason) { setError(reason instanceof Error ? reason.message : "Falha ao carregar."); } finally { setLoading(false); } }, [query]);
   useEffect(() => { load(); }, [load]);
 
@@ -68,6 +71,7 @@ export function DashboardView({ overview = false }: { overview?: boolean }) {
       <Field label="Coordenador" htmlFor="coordinator"><SearchableSelect id="coordinator" value={coordinator} onChange={setCoordinator} placeholder="Todos" options={coordinators.map((item) => ({ value: String(item.id), label: item.name }))} /></Field>
       <Field label="Loja" htmlFor="store"><SearchableSelect id="store" value={store} onChange={setStore} placeholder="Todas" options={stores.map((item) => ({ value: String(item.id), label: item.name }))} /></Field>
       <Field label="Consultor" htmlFor="consultant"><SearchableSelect id="consultant" value={consultant} onChange={setConsultant} disabled={!store} placeholder="Todos" options={consultants.map((item) => ({ value: String(item.id), label: item.name }))} /></Field>
+      <Field label="Plano atual" htmlFor="current-plan"><SearchableSelect id="current-plan" value={currentPlan} onChange={setCurrentPlan} placeholder="Todos" options={currentPlans.map((item) => ({ value: item, label: item }))} /></Field>
     </Card>}
     {error && <p className="form-error" role="alert">{error} <button onClick={load}>Tentar novamente</button></p>}
     {loading ? <div className="metrics-grid">{Array.from({ length: 6 }, (_, index) => <Skeleton key={index} height={126} />)}</div> : <div className="metrics-grid">
