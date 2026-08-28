@@ -7,7 +7,15 @@ import type { Attendance, NamedEntity, StoreContext, User, YesNo } from "@/lib/t
 import { Button, Card, EmptyState, Field, PageHeader, SearchableSelect, StatusBadge } from "@/components/ui";
 
 const today = new Date().toISOString().slice(0, 10);
-const plans = ["VIVO TOTAL", "PURO", "CONTROLE", "FIBRA AVULSO"];
+const plans = [
+  "Pre Pago",
+  "Controle ate R$60,00",
+  "Controle acima R$60,00",
+  "Vivo Total",
+  "Pos pago",
+  "Fibra avulsa",
+  "Outras Operadoras",
+];
 const saleReasonNames = new Set([
   "HABILITAÇÃO PRÉ/PÓS",
   "UPGRADE",
