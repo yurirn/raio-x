@@ -40,7 +40,7 @@ def allowed_store_ids(session: Session, user: User) -> list[int] | None:
     """None means unrestricted access; empty list means the user has no assigned stores."""
     if user.role == Role.ADMIN:
         return None
-    if user.role == Role.COORDINATOR:
+    if user.role in (Role.COORDINATOR, Role.MANAGER):
         coordinator_ids = select(UserCoordinator.coordinator_id).where(
             UserCoordinator.user_id == user.id
         )
@@ -55,4 +55,32 @@ def assert_store_access(session: Session, user: User, store_id: int) -> None:
     if allowed is not None and store_id not in allowed:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Loja fora do escopo do usuário"
+        )
+
+
+def allowed_coordinator_ids(session: Session, user: User) -> list[int] | None:
+    """None means unrestricted access; other roles are derived from their stores."""
+    if user.role == Role.ADMIN:
+        return None
+    if user.role in (Role.COORDINATOR, Role.MANAGER):
+        return list(
+            session.scalars(
+                select(UserCoordinator.coordinator_id).where(UserCoordinator.user_id == user.id)
+            )
+        )
+    return list(
+        session.scalars(
+            select(Store.coordinator_id)
+            .join(UserStore, UserStore.store_id == Store.id)
+            .where(UserStore.user_id == user.id)
+        )
+    )
+
+
+def assert_coordinator_access(session: Session, user: User, coordinator_id: int) -> None:
+    allowed = allowed_coordinator_ids(session, user)
+    if allowed is not None and coordinator_id not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Coordenador fora do escopo do usuário",
         )

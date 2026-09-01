@@ -35,7 +35,14 @@ from app.schemas import (
     UserIn,
     UserPatch,
 )
-from app.security import allowed_store_ids, assert_store_access, current_user, require_roles
+from app.security import (
+    allowed_coordinator_ids,
+    allowed_store_ids,
+    assert_coordinator_access,
+    assert_store_access,
+    current_user,
+    require_roles,
+)
 from app.services import (
     add_audit,
     aggregate_metrics,
@@ -157,7 +164,7 @@ def scoped_attendances(query: Select, session: Session, user: User) -> Select:
 def create_attendance(
     payload: AttendanceIn,
     session: Session = Depends(get_session),
-    user: User = Depends(require_roles(Role.ADMIN, Role.OPERATOR)),
+    user: User = Depends(require_roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)),
 ):
     assert_store_access(session, user, payload.store_id)
     validate_hierarchy(
@@ -243,7 +250,7 @@ def update_attendance(
     attendance_id: int,
     payload: AttendancePatch,
     session: Session = Depends(get_session),
-    user: User = Depends(require_roles(Role.ADMIN, Role.OPERATOR)),
+    user: User = Depends(require_roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)),
 ):
     attendance = session.get(Attendance, attendance_id)
     if not attendance:
@@ -278,7 +285,7 @@ def update_attendance(
 def delete_attendance(
     attendance_id: int,
     session: Session = Depends(get_session),
-    user: User = Depends(require_roles(Role.ADMIN, Role.OPERATOR)),
+    user: User = Depends(require_roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)),
 ):
     attendance = session.get(Attendance, attendance_id)
     if not attendance:
@@ -576,6 +583,7 @@ def export_consolidated(
 
 
 ADMIN = Depends(require_roles(Role.ADMIN))
+ADMIN_OR_MANAGER = Depends(require_roles(Role.ADMIN, Role.MANAGER))
 
 
 def user_public(item: User) -> dict:
@@ -591,20 +599,64 @@ def user_public(item: User) -> dict:
     }
 
 
-def admin_crud(path: str, model, payload_type):
-    @router.get(path, dependencies=[ADMIN])
-    def list_items(include_inactive: bool = False, session: Session = Depends(get_session)):
+def manager_resource_query(query: Select, model, session: Session, user: User) -> Select:
+    """Apply the manager's coordinator scope to mutable operational resources."""
+    if user.role != Role.MANAGER:
+        return query
+    coordinator_ids = allowed_coordinator_ids(session, user) or []
+    if model is Store:
+        return query.where(Store.coordinator_id.in_(coordinator_ids))
+    if model is Consultant:
+        return query.join(Store, Consultant.store_id == Store.id).where(
+            Store.coordinator_id.in_(coordinator_ids)
+        )
+    return query
+
+
+def assert_manager_resource_access(session: Session, user: User, model, item=None, payload=None) -> None:
+    if user.role != Role.MANAGER:
+        return
+    if model is Store:
+        if item is not None:
+            assert_coordinator_access(session, user, item.coordinator_id)
+        coordinator_id = getattr(payload, "coordinator_id", None) if payload else None
+        if coordinator_id is not None:
+            assert_coordinator_access(session, user, coordinator_id)
+        return
+    if model is Consultant:
+        if item is not None:
+            assert_store_access(session, user, item.store_id)
+        store_id = getattr(payload, "store_id", None) if payload else None
+        if store_id is not None:
+            assert_store_access(session, user, store_id)
+
+
+def admin_crud(path: str, model, payload_type, manager_allowed: bool = False):
+    @router.get(path)
+    def list_items(
+        include_inactive: bool = False,
+        session: Session = Depends(get_session),
+        user: User = ADMIN_OR_MANAGER,
+    ):
+        if user.role == Role.MANAGER and not manager_allowed:
+            raise HTTPException(status_code=403, detail="Sem permissão para este cadastro")
         query = select(model).order_by(model.name)
         if not include_inactive:
             query = query.where(model.active.is_(True))
+        query = manager_resource_query(query, model, session, user)
         return session.scalars(query).all()
 
-    @router.post(path, status_code=201, dependencies=[ADMIN])
+    @router.post(path, status_code=201)
     def create_item(
         payload: payload_type,
         session: Session = Depends(get_session),
         user: User = Depends(current_user),
     ):
+        if user.role not in (Role.ADMIN, Role.MANAGER) or (
+            user.role == Role.MANAGER and not manager_allowed
+        ):
+            raise HTTPException(status_code=403, detail="Sem permissão para este cadastro")
+        assert_manager_resource_access(session, user, model, payload=payload)
         item = model(**payload.model_dump())
         session.add(item)
         session.flush()
@@ -615,16 +667,21 @@ def admin_crud(path: str, model, payload_type):
         session.refresh(item)
         return item
 
-    @router.patch(f"{path}/{{item_id}}", dependencies=[ADMIN])
+    @router.patch(f"{path}/{{item_id}}")
     def update_item(
         item_id: int,
         payload: payload_type,
         session: Session = Depends(get_session),
         user: User = Depends(current_user),
     ):
+        if user.role not in (Role.ADMIN, Role.MANAGER) or (
+            user.role == Role.MANAGER and not manager_allowed
+        ):
+            raise HTTPException(status_code=403, detail="Sem permissão para este cadastro")
         item = session.get(model, item_id)
         if not item:
             raise HTTPException(status_code=404, detail="Cadastro não encontrado")
+        assert_manager_resource_access(session, user, model, item=item, payload=payload)
         before = {"name": item.name, "active": item.active}
         for key, value in payload.model_dump().items():
             setattr(item, key, value)
@@ -644,14 +701,22 @@ def admin_crud(path: str, model, payload_type):
 
 admin_crud("/admin/regionals", Regional, RegionalIn)
 admin_crud("/admin/coordinators", Coordinator, CoordinatorIn)
-admin_crud("/admin/stores", Store, StoreIn)
-admin_crud("/admin/consultants", Consultant, ConsultantIn)
+admin_crud("/admin/stores", Store, StoreIn, manager_allowed=True)
+admin_crud("/admin/consultants", Consultant, ConsultantIn, manager_allowed=True)
 admin_crud("/admin/reasons", Reason, ReasonIn)
 
 
-@router.get("/admin/users", dependencies=[ADMIN])
-def admin_users(session: Session = Depends(get_session)):
-    return [user_public(item) for item in session.scalars(select(User).order_by(User.name))]
+@router.get("/admin/users")
+def admin_users(session: Session = Depends(get_session), user: User = ADMIN_OR_MANAGER):
+    query = select(User).order_by(User.name)
+    if user.role == Role.MANAGER:
+        allowed = allowed_store_ids(session, user) or []
+        query = (
+            query.join(UserStore, UserStore.user_id == User.id)
+            .where(User.role == Role.OPERATOR, UserStore.store_id.in_(allowed))
+            .distinct()
+        )
+    return [user_public(item) for item in session.scalars(query)]
 
 
 def apply_user_scopes(
@@ -665,12 +730,25 @@ def apply_user_scopes(
         session.add(UserStore(user_id=user.id, store_id=store_id))
 
 
-@router.post("/admin/users", status_code=201, dependencies=[ADMIN])
+def assert_manager_user_scope(session: Session, manager: User, role: Role, store_ids: list[int]) -> None:
+    if manager.role != Role.MANAGER:
+        return
+    if role != Role.OPERATOR or not store_ids:
+        raise HTTPException(status_code=403, detail="Gerentes só podem criar operadores vinculados às próprias lojas")
+    allowed = set(allowed_store_ids(session, manager) or [])
+    if not set(store_ids).issubset(allowed):
+        raise HTTPException(status_code=403, detail="Loja fora do escopo do gerente")
+
+
+@router.post("/admin/users", status_code=201)
 def create_user(
     payload: UserIn, session: Session = Depends(get_session), user: User = Depends(current_user)
 ):
+    if user.role not in (Role.ADMIN, Role.MANAGER):
+        raise HTTPException(status_code=403, detail="Sem permissão para criar usuários")
     if session.scalar(select(User).where(User.email == payload.email)):
         raise HTTPException(status_code=409, detail="E-mail já cadastrado")
+    assert_manager_user_scope(session, user, payload.role, payload.store_ids)
     item = User(
         name=payload.name,
         email=payload.email,
@@ -695,19 +773,33 @@ def create_user(
     return user_public(item)
 
 
-@router.patch("/admin/users/{user_id}", dependencies=[ADMIN])
+@router.patch("/admin/users/{user_id}")
 def update_user(
     user_id: int,
     payload: UserPatch,
     session: Session = Depends(get_session),
     user: User = Depends(current_user),
 ):
+    if user.role not in (Role.ADMIN, Role.MANAGER):
+        raise HTTPException(status_code=403, detail="Sem permissão para alterar usuários")
     item = session.get(User, user_id)
     if not item:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
     changes = payload.model_dump(exclude_unset=True)
     coordinator_ids = changes.pop("coordinator_ids", None)
     store_ids = changes.pop("store_ids", None)
+    if user.role == Role.MANAGER:
+        current_store_ids = set(
+            session.scalars(select(UserStore.store_id).where(UserStore.user_id == item.id))
+        )
+        allowed = set(allowed_store_ids(session, user) or [])
+        if item.role != Role.OPERATOR or not current_store_ids or not current_store_ids.issubset(allowed):
+            raise HTTPException(status_code=403, detail="Usuário fora do escopo do gerente")
+        requested_role = changes.get("role", item.role)
+        requested_store_ids = store_ids if store_ids is not None else list(current_store_ids)
+        assert_manager_user_scope(session, user, requested_role, requested_store_ids)
+        if coordinator_ids is not None:
+            raise HTTPException(status_code=403, detail="Gerentes não podem alterar escopo de coordenadores")
     if "password" in changes:
         changes["password_hash"] = hash_password(changes.pop("password"))
     for key, value in changes.items():

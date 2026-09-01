@@ -1,5 +1,5 @@
 export type YesNo = "YES" | "NO";
-export type Role = "ADMIN" | "COORDINATOR" | "OPERATOR";
+export type Role = "ADMIN" | "MANAGER" | "COORDINATOR" | "OPERATOR";
 
 export interface NamedEntity {
   id: number;

@@ -36,9 +36,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <aside className={`sidebar ${open ? "is-open" : ""}`} aria-label="Navegação principal">
       <div className="brand"><Image className="brand-vivo" src="/logo-vivo.webp" alt="Vivo" width={94} height={30} priority /></div>
       <button className="icon-button close-nav" onClick={() => setOpen(false)} aria-label="Fechar menu"><X size={21} /></button>
-      <nav>{navigation.filter((item) => !item.admin || user.role === "ADMIN").map(({ href, label, icon: Icon }) =>
+      <nav>{navigation.filter((item) => !item.admin || user.role === "ADMIN" || user.role === "MANAGER").map(({ href, label, icon: Icon }) =>
         <Link key={href} href={href} onClick={() => setOpen(false)} className={pathname.startsWith(href) ? "active" : ""}><Icon size={20} /><span>{label}</span></Link>)}</nav>
-      <div className="sidebar-footer"><div className="avatar">{user.name.slice(0, 2).toUpperCase()}</div><div><strong>{user.name}</strong><small>{user.role === "ADMIN" ? "Administrador" : user.role === "COORDINATOR" ? "Coordenador" : "Operador"}</small></div><button className="icon-button" onClick={logout} aria-label="Sair"><LogOut size={19} /></button></div>
+      <div className="sidebar-footer"><div className="avatar">{user.name.slice(0, 2).toUpperCase()}</div><div><strong>{user.name}</strong><small>{user.role === "ADMIN" ? "Administrador" : user.role === "MANAGER" ? "Gerente" : user.role === "COORDINATOR" ? "Coordenador" : "Operador"}</small></div><button className="icon-button" onClick={logout} aria-label="Sair"><LogOut size={19} /></button></div>
     </aside>
     {open && <button className="nav-scrim" onClick={() => setOpen(false)} aria-label="Fechar menu" />}
     <div className="app-content">

@@ -4,7 +4,6 @@ from enum import StrEnum
 from sqlalchemy import (
     JSON,
     Boolean,
-    CheckConstraint,
     Date,
     DateTime,
     Enum,
@@ -21,6 +20,7 @@ from app.database import Base
 
 class Role(StrEnum):
     ADMIN = "ADMIN"
+    MANAGER = "MANAGER"
     COORDINATOR = "COORDINATOR"
     OPERATOR = "OPERATOR"
 
