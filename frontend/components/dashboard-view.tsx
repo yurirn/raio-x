@@ -4,11 +4,12 @@ import { Activity, ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, Download, Radi
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api, download } from "@/lib/api";
+import { localDateInputValue } from "@/lib/date";
 import type { DashboardData, NamedEntity } from "@/lib/types";
 import { Button, Card, EmptyState, Field, PageHeader, SearchableSelect, Skeleton } from "./ui";
 
-const today = new Date().toISOString().slice(0, 10);
-const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
+const today = localDateInputValue();
+const firstDay = localDateInputValue(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 const colors = ["#0f766e", "#0891b2", "#2563eb", "#7c3aed", "#b45309", "#64748b"];
 const brDate = (value: string) => value.split("-").reverse().join("/");
 const currentPlans = ["Pre Pago", "Controle ate R$60,00", "Controle acima R$60,00", "Vivo Total", "Pos pago", "Fibra avulsa", "Outras Operadoras"];

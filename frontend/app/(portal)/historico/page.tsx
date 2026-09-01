@@ -3,11 +3,12 @@
 import { ChevronLeft, ChevronRight, Download, Search } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { api, download } from "@/lib/api";
+import { localDateInputValue } from "@/lib/date";
 import type { Attendance, NamedEntity, YesNo } from "@/lib/types";
 import { Button, Card, EmptyState, Field, PageHeader, SearchableSelect, StatusBadge } from "@/components/ui";
 
-const today = new Date().toISOString().slice(0, 10);
-const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
+const today = localDateInputValue();
+const monthStart = localDateInputValue(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 
 export default function HistoryPage() {
   const [start, setStart] = useState(monthStart); const [end, setEnd] = useState(today); const [store, setStore] = useState(""); const [consultant, setConsultant] = useState(""); const [sale, setSale] = useState<YesNo | "">(""); const [document, setDocument] = useState("");

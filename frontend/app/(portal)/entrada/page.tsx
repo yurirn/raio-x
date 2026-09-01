@@ -3,10 +3,11 @@
 import { CheckCircle2, Pencil, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { localDateInputValue } from "@/lib/date";
 import type { Attendance, NamedEntity, StoreContext, User, YesNo } from "@/lib/types";
 import { Button, Card, EmptyState, Field, PageHeader, SearchableSelect, StatusBadge } from "@/components/ui";
 
-const today = new Date().toISOString().slice(0, 10);
+const today = localDateInputValue();
 const plans = [
   "Pre Pago",
   "Controle ate R$60,00",
