@@ -148,8 +148,6 @@ export default function EntryPage() {
           <YesNoField label="Cliente já possui Fibra-Total?" name="fiber-total" value={form.has_fiber_total} onChange={(value) => update("has_fiber_total", value)} />
           <YesNoField label="Possui disponibilidade FTTH?" name="ftth" value={form.ftth_available} onChange={(value) => update("ftth_available", value)} />
           <Field label="Classificação" htmlFor="classification-Disp Venda" required><div className="choice-board" role="radiogroup" aria-label="Classificação">{opportunityChoices.map((group) => <div className="choice-group" key={group.group}><strong>{group.group}</strong>{group.values.map((item) => <label className="choice-option" key={item} htmlFor={`classification-${item}`}><input id={`classification-${item}`} type="radio" name="classification" value={item} checked={(form.opportunity || form.non_opportunity) === item} onChange={() => selectClassification(item)} required />{item}</label>)}</div>)}</div></Field>
-        </div>
-        <div className="form-grid">
           <YesNoField label="Venda realizada?" name="sale" value={form.sale} onChange={(value) => { update("sale", value); update("reason_id", ""); update("order_number", ""); update("outcome_detail", ""); }} />
         </div>
         {error && <p className="form-error" role="alert">{error}</p>}
