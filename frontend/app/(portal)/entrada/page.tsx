@@ -37,13 +37,13 @@ const saleReasonNames = new Set([
   "PJ",
 ]);
 const unusedPreviewLimit = 5;
-const initialForm = { password_number: "", activity: "", cpf_cnpj: "", current_plan: "", opportunity: "", non_opportunity: "", has_fiber_total: "NO" as YesNo, ftth_available: "YES" as YesNo, available_for_sale: "YES" as YesNo, sale: "NO" as YesNo, order_number: "", outcome_detail: "", reason_id: "", consultant_id: "" };
+const initialForm = { password_number: "", activity: "", cpf_cnpj: "", current_plan: "", opportunity: "", non_opportunity: "", has_fiber_total: "" as YesNo | "", ftth_available: "" as YesNo | "", available_for_sale: "NO" as YesNo, sale: "" as YesNo | "", order_number: "", outcome_detail: "", reason_id: "", consultant_id: "" };
 
 function formatPassword(value: number) {
   return value.toString().padStart(3, "0");
 }
 
-function YesNoField({ label, name, value, onChange }: { label: string; name: string; value: YesNo; onChange: (value: YesNo) => void }) {
+function YesNoField({ label, name, value, onChange }: { label: string; name: string; value: YesNo | ""; onChange: (value: YesNo) => void }) {
   return <Field label={label} htmlFor={`${name}-yes`} required><div className="segmented" role="group" aria-label={label}><button id={`${name}-yes`} type="button" className="segment" aria-pressed={value === "YES"} onClick={() => onChange("YES")}>Sim</button><button type="button" className="segment" aria-pressed={value === "NO"} onClick={() => onChange("NO")}>Não</button></div></Field>;
 }
 
@@ -76,14 +76,22 @@ export default function EntryPage() {
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) { setForm((old) => ({ ...old, [key]: value })); }
   function selectClassification(value: string) {
-    const isOpportunity = opportunities.includes(value);
-    setForm((old) => ({ ...old, opportunity: isOpportunity ? value : "", non_opportunity: isOpportunity ? "" : value, available_for_sale: isOpportunity ? "YES" : "NO" }));
+    setForm((old) => {
+      if ((old.opportunity || old.non_opportunity) === value) {
+        return { ...old, opportunity: "", non_opportunity: "", available_for_sale: "NO" };
+      }
+      const isOpportunity = opportunities.includes(value);
+      return { ...old, opportunity: isOpportunity ? value : "", non_opportunity: isOpportunity ? "" : value, available_for_sale: isOpportunity ? "YES" : "NO" };
+    });
   }
   function legacyRecord() { return Boolean(editing && !form.activity && !form.opportunity && !form.non_opportunity && !form.order_number && !form.outcome_detail); }
   function validateEntry() {
     if (!regional || !coordinator || !store) { setError("Selecione Regional, Coordenador e Loja."); return false; }
     if (!legacyRecord() && !form.activity) { setError("Selecione a atuação."); return false; }
-    if (!legacyRecord() && Boolean(form.opportunity) === Boolean(form.non_opportunity)) { setError("Selecione uma classificação."); return false; }
+    if (form.opportunity && form.non_opportunity) { setError("Selecione apenas uma classificação."); return false; }
+    if (!form.has_fiber_total) { setError("Informe se o cliente já possui Fibra-Total."); return false; }
+    if (!form.ftth_available) { setError("Informe se possui disponibilidade FTTH."); return false; }
+    if (!form.sale) { setError("Informe se a venda foi realizada."); return false; }
     return true;
   }
   function submit(event: FormEvent) {
@@ -127,7 +135,7 @@ export default function EntryPage() {
   const visibleReasons = reasons.filter((item) => form.sale === "YES" ? saleReasonNames.has(item.name) : !saleReasonNames.has(item.name));
   const filtered = items.filter((item) => `${item.password_number} ${item.cpf_cnpj} ${consultantName[item.consultant_id] ?? ""}`.toLowerCase().includes(search.toLowerCase()));
   return <>
-    <PageHeader eyebrow="Operação do dia" title="Entrada de dados" description="Registre cada atendimento com poucos cliques. A estrutura selecionada permanece para o próximo lançamento." action={store ? <aside className="unused-passwords" aria-live="polite"><div className="unused-passwords-head"><span>Senhas não usadas</span><strong>{unused.length}</strong></div>{unused.length ? <p className="unused-passwords-list">{unused.slice(0, unusedPreviewLimit).map(formatPassword).join(" · ")}</p> : <p className="unused-passwords-empty">Nenhuma senha em aberto hoje.</p>}{unused.length > unusedPreviewLimit && <Button type="button" variant="ghost" onClick={() => setUnusedOpen(true)}>Ver mais</Button>}</aside> : undefined} />
+    <PageHeader eyebrow="Operação do dia" title="Entrada de dados" description="Registre cada atendimento com poucos cliques. A estrutura selecionada permanece para o próximo lançamento." action={store ? <aside className="unused-passwords" aria-live="polite"><div className="unused-passwords-head"><span>Senhas não palitadas</span><strong>{unused.length}</strong></div>{unused.length ? <p className="unused-passwords-list">{unused.slice(0, unusedPreviewLimit).map(formatPassword).join(" · ")}</p> : <p className="unused-passwords-empty">Nenhuma senha em aberto hoje.</p>}{unused.length > unusedPreviewLimit && <Button type="button" variant="ghost" onClick={() => setUnusedOpen(true)}>Ver mais</Button>}</aside> : undefined} />
     <Card><div className="card-body">
       <div className="context-grid">
         <Field label="Data" htmlFor="entry-date" required><input id="entry-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
@@ -147,14 +155,14 @@ export default function EntryPage() {
         <div className="entry-flags">
           <YesNoField label="Cliente já possui Fibra-Total?" name="fiber-total" value={form.has_fiber_total} onChange={(value) => update("has_fiber_total", value)} />
           <YesNoField label="Possui disponibilidade FTTH?" name="ftth" value={form.ftth_available} onChange={(value) => update("ftth_available", value)} />
-          <Field label="Classificação" htmlFor="classification-Disp Venda" required><div className="choice-board" role="radiogroup" aria-label="Classificação">{opportunityChoices.map((group) => <div className="choice-group" key={group.group}><strong>{group.group}</strong>{group.values.map((item) => <label className="choice-option" key={item} htmlFor={`classification-${item}`}><input id={`classification-${item}`} type="radio" name="classification" value={item} checked={(form.opportunity || form.non_opportunity) === item} onChange={() => selectClassification(item)} required />{item}</label>)}</div>)}</div></Field>
+          <Field label="Classificação" htmlFor="classification-Disp Venda"><div className="choice-board" role="radiogroup" aria-label="Classificação">{opportunityChoices.map((group) => <div className="choice-group" key={group.group}><strong>{group.group}</strong>{group.values.map((item) => <label className="choice-option" key={item} htmlFor={`classification-${item}`}><input id={`classification-${item}`} type="radio" name="classification" value={item} checked={(form.opportunity || form.non_opportunity) === item} onClick={() => selectClassification(item)} onChange={() => undefined} />{item}</label>)}</div>)}</div></Field>
           <YesNoField label="Venda realizada?" name="sale" value={form.sale} onChange={(value) => { update("sale", value); update("reason_id", ""); update("order_number", ""); update("outcome_detail", ""); }} />
         </div>
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="form-actions">{editing && <Button type="button" variant="ghost" onClick={() => { setEditing(null); setForm(initialForm); }}>Cancelar edição</Button>}<Button type="submit" busy={busy} disabled={!store}><Plus size={18} /> {editing ? "Salvar alterações" : "Registrar atendimento"}</Button></div>
       </form>
     </div></Card>
-    {unusedOpen && <div className="modal-layer" role="presentation"><div className="modal" role="dialog" aria-modal="true" aria-labelledby="unused-title"><div className="modal-header"><div><span className="eyebrow">Senhas do dia</span><h2 id="unused-title">Senhas não usadas</h2></div><button className="icon-button" type="button" onClick={() => setUnusedOpen(false)} aria-label="Fechar"><X size={20}/></button></div><div className="modal-body"><p>{unused.length} senha{unused.length === 1 ? "" : "s"} sem atendimento nesta loja.</p><div className="unused-password-grid" tabIndex={0}>{unused.map((item) => <span className="unused-password-chip" key={item}>{formatPassword(item)}</span>)}</div></div><div className="modal-footer"><Button type="button" variant="ghost" onClick={() => setUnusedOpen(false)}>Fechar</Button></div></div></div>}
+    {unusedOpen && <div className="modal-layer" role="presentation"><div className="modal" role="dialog" aria-modal="true" aria-labelledby="unused-title"><div className="modal-header"><div><span className="eyebrow">Senhas do dia</span><h2 id="unused-title">Senhas não palitadas</h2></div><button className="icon-button" type="button" onClick={() => setUnusedOpen(false)} aria-label="Fechar"><X size={20}/></button></div><div className="modal-body"><p>{unused.length} senha{unused.length === 1 ? "" : "s"} sem atendimento nesta loja.</p><div className="unused-password-grid" tabIndex={0}>{unused.map((item) => <span className="unused-password-chip" key={item}>{formatPassword(item)}</span>)}</div></div><div className="modal-footer"><Button type="button" variant="ghost" onClick={() => setUnusedOpen(false)}>Fechar</Button></div></div></div>}
     {finalizationOpen && <div className="modal-layer" role="presentation"><div className="modal" role="dialog" aria-modal="true" aria-labelledby="finalization-title"><div className="modal-header"><div><span className="eyebrow">Finalizar atendimento</span><h2 id="finalization-title">Venda {form.sale === "YES" ? "realizada" : "não realizada"}</h2></div><button className="icon-button" type="button" onClick={() => setFinalizationOpen(false)} aria-label="Fechar"><X size={20}/></button></div><form onSubmit={finalize}><div className="modal-body">{form.sale === "YES" && <Field label="Número da ordem" htmlFor="order-number" hint="Digite somente os números." required><input id="order-number" value={form.order_number} onChange={(event) => update("order_number", event.target.value.replace(/\D/g, ""))} inputMode="numeric" autoFocus required /></Field>}<Field label={form.sale === "YES" ? "Motivo da venda" : "Motivo da não venda"} htmlFor="reason" required><SearchableSelect id="reason" value={form.reason_id} onChange={(value) => update("reason_id", value)} options={visibleReasons.map((item) => ({ value: String(item.id), label: item.name }))} required /></Field><Field label="Classificação final" htmlFor="outcome-detail" required><SearchableSelect id="outcome-detail" value={form.outcome_detail} onChange={(value) => update("outcome_detail", value)} options={(form.sale === "YES" ? saleOutcomes : nonSaleOutcomes).map((item) => ({ value: item, label: item }))} required /></Field>{error && <p className="form-error" role="alert">{error}</p>}</div><div className="modal-footer"><Button type="button" variant="ghost" onClick={() => setFinalizationOpen(false)}>Voltar</Button><Button type="submit" busy={busy}>Finalizar atendimento</Button></div></form></div></div>}
     {notice && <div className="toast" role="status"><CheckCircle2 size={19} />{notice}</div>}
     <Card style={{ marginTop: 22 }}><div className="card-header"><div><h2>Atendimentos do dia</h2><p>{items.length} registro{items.length === 1 ? "" : "s"} na loja selecionada</p></div><div className="table-search"><Search size={17}/><input aria-label="Pesquisar atendimentos" placeholder="Senha, CPF/CNPJ ou consultor" value={search} onChange={(e) => setSearch(e.target.value)} /></div></div>

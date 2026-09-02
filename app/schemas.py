@@ -123,8 +123,8 @@ class AttendanceIn(BaseModel):
     def reason_rules(self):
         if not self.reason_id:
             raise ValueError("Motivo é obrigatório para o atendimento")
-        if bool(self.opportunity) == bool(self.non_opportunity):
-            raise ValueError("Informe uma oportunidade ou uma não oportunidade")
+        if self.opportunity and self.non_opportunity:
+            raise ValueError("Informe apenas uma classificação")
         if not self.outcome_detail:
             raise ValueError("Informe a classificação final do atendimento")
         if self.sale == YesNo.YES and not self.order_number:

@@ -275,11 +275,8 @@ def update_attendance(
     for key, value in changes.items():
         setattr(attendance, key, value)
     if "opportunity" in changes or "non_opportunity" in changes:
-        if bool(attendance.opportunity) == bool(attendance.non_opportunity):
-            raise HTTPException(
-                status_code=422,
-                detail="Informe uma oportunidade ou uma não oportunidade",
-            )
+        if attendance.opportunity and attendance.non_opportunity:
+            raise HTTPException(status_code=422, detail="Informe apenas uma classificação")
     if "order_number" in changes or "outcome_detail" in changes:
         if not attendance.outcome_detail:
             raise HTTPException(status_code=422, detail="Informe a classificação final do atendimento")

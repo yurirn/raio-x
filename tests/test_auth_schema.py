@@ -65,7 +65,7 @@ def test_attendance_requires_a_manually_informed_password_number():
     assert attendance.password_number == 123
 
 
-def test_attendance_requires_exactly_one_opportunity_classification():
+def test_attendance_accepts_optional_opportunity_classification():
     payload = {
         "date": "2026-08-26",
         "password_number": 123,
@@ -83,11 +83,11 @@ def test_attendance_requires_exactly_one_opportunity_classification():
         "regional_id": 1,
     }
 
-    with pytest.raises(ValidationError):
-        AttendanceIn(**payload)
+    empty = AttendanceIn(**payload)
     with pytest.raises(ValidationError):
         AttendanceIn(**payload, opportunity="Disp Venda", non_opportunity="Dívida")
 
     attendance = AttendanceIn(**payload, non_opportunity="Dívida")
 
+    assert empty.opportunity is None
     assert attendance.non_opportunity == "Dívida"
