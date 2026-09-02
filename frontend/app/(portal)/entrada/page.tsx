@@ -21,6 +21,10 @@ const plans = [
 const activities = ["Físico", "Mailing", "Não aguardou"];
 const opportunities = ["Disp Venda", "Pinga Lote", "Alívio", "Cond Porta"];
 const nonOpportunities = ["Dívida", "Fidelidade", "Fibra end", "Realta"];
+const opportunityChoices = [
+  { group: "Oport.", values: opportunities },
+  { group: "Não oport.", values: nonOpportunities },
+] as const;
 const saleOutcomes = ["Fibra avulsa", "Vivo Total", "Totalização", "PJ"];
 const nonSaleOutcomes = ["Não é decisor", "Não quer fibra", "Oferta concorrência", "PJ"];
 const saleReasonNames = new Set([
@@ -71,13 +75,15 @@ export default function EntryPage() {
   useEffect(() => { loadDay().catch((reason) => setError(reason.message)); }, [loadDay]);
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) { setForm((old) => ({ ...old, [key]: value })); }
-  function selectOpportunity(value: string) { setForm((old) => ({ ...old, opportunity: value, non_opportunity: value ? "" : old.non_opportunity })); }
-  function selectNonOpportunity(value: string) { setForm((old) => ({ ...old, non_opportunity: value, opportunity: value ? "" : old.opportunity })); }
+  function selectClassification(value: string) {
+    const isOpportunity = opportunities.includes(value);
+    setForm((old) => ({ ...old, opportunity: isOpportunity ? value : "", non_opportunity: isOpportunity ? "" : value }));
+  }
   function legacyRecord() { return Boolean(editing && !form.activity && !form.opportunity && !form.non_opportunity && !form.order_number && !form.outcome_detail); }
   function validateEntry() {
     if (!regional || !coordinator || !store) { setError("Selecione Regional, Coordenador e Loja."); return false; }
     if (!legacyRecord() && !form.activity) { setError("Selecione a atuação."); return false; }
-    if (!legacyRecord() && Boolean(form.opportunity) === Boolean(form.non_opportunity)) { setError("Selecione uma oportunidade ou uma não oportunidade."); return false; }
+    if (!legacyRecord() && Boolean(form.opportunity) === Boolean(form.non_opportunity)) { setError("Selecione uma classificação."); return false; }
     return true;
   }
   function submit(event: FormEvent) {
@@ -137,8 +143,7 @@ export default function EntryPage() {
           <Field label="CPF/CNPJ" htmlFor="cpf" hint="Zeros à esquerda serão preservados." required><input id="cpf" value={form.cpf_cnpj} onChange={(e) => update("cpf_cnpj", e.target.value)} inputMode="numeric" autoComplete="off" maxLength={18} required /></Field>
           <Field label="Plano atual" htmlFor="plan"><SearchableSelect id="plan" value={form.current_plan} onChange={(value) => update("current_plan", value)} options={plans.map((plan) => ({ value: plan, label: plan }))} /></Field>
           <Field label="Consultor" htmlFor="entry-consultant" required><SearchableSelect id="entry-consultant" value={form.consultant_id} onChange={(value) => update("consultant_id", value)} disabled={!store} options={consultants.map((item) => ({ value: String(item.id), label: item.name }))} required /></Field>
-          <Field label="Oportunidade" htmlFor="opportunity" required><SearchableSelect id="opportunity" value={form.opportunity} onChange={selectOpportunity} disabled={Boolean(form.non_opportunity)} options={opportunities.map((item) => ({ value: item, label: item }))} required /></Field>
-          <Field label="Não oportunidade" htmlFor="non-opportunity" required><SearchableSelect id="non-opportunity" value={form.non_opportunity} onChange={selectNonOpportunity} disabled={Boolean(form.opportunity)} options={nonOpportunities.map((item) => ({ value: item, label: item }))} required /></Field>
+          <div className="span-full"><Field label="Classificação" htmlFor="classification-Disp Venda" required><div className="choice-board" role="radiogroup" aria-label="Classificação">{opportunityChoices.map((group) => <div className="choice-group" key={group.group}><strong>{group.group}</strong>{group.values.map((item) => <label className="choice-option" key={item} htmlFor={`classification-${item}`}><input id={`classification-${item}`} type="radio" name="classification" value={item} checked={(form.opportunity || form.non_opportunity) === item} onChange={() => selectClassification(item)} required />{item}</label>)}</div>)}</div></Field></div>
           <YesNoField label="Possui disponibilidade FTTH?" name="ftth" value={form.ftth_available} onChange={(value) => update("ftth_available", value)} />
           <YesNoField label="Disponível para venda?" name="available" value={form.available_for_sale} onChange={(value) => update("available_for_sale", value)} />
           <YesNoField label="Venda realizada?" name="sale" value={form.sale} onChange={(value) => { update("sale", value); update("reason_id", ""); update("order_number", ""); update("outcome_detail", ""); }} />
