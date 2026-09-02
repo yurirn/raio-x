@@ -119,6 +119,9 @@ class Attendance(Timestamped, Base):
     current_plan: Mapped[str | None] = mapped_column(String(255))
     opportunity: Mapped[str | None] = mapped_column(String(40))
     non_opportunity: Mapped[str | None] = mapped_column(String(40))
+    has_fiber_total: Mapped[YesNo] = mapped_column(
+        Enum(YesNo, name="yes_no"), default=YesNo.NO, server_default="NO"
+    )
     ftth_available: Mapped[YesNo] = mapped_column(Enum(YesNo, name="yes_no"), index=True)
     available_for_sale: Mapped[YesNo] = mapped_column(Enum(YesNo, name="yes_no"), index=True)
     sale: Mapped[YesNo] = mapped_column(Enum(YesNo, name="yes_no"), index=True)

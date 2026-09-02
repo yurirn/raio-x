@@ -45,6 +45,7 @@ export interface Attendance {
   current_plan: string | null;
   opportunity: string | null;
   non_opportunity: string | null;
+  has_fiber_total: YesNo;
   ftth_available: YesNo;
   available_for_sale: YesNo;
   sale: YesNo;

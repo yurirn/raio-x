@@ -102,6 +102,7 @@ class AttendanceIn(BaseModel):
     current_plan: str | None = Field(default=None, max_length=255)
     opportunity: str | None = Field(default=None, max_length=40)
     non_opportunity: str | None = Field(default=None, max_length=40)
+    has_fiber_total: YesNo
     ftth_available: YesNo
     available_for_sale: YesNo
     sale: YesNo
@@ -142,6 +143,7 @@ class AttendancePatch(BaseModel):
     current_plan: str | None = Field(default=None, max_length=255)
     opportunity: str | None = Field(default=None, max_length=40)
     non_opportunity: str | None = Field(default=None, max_length=40)
+    has_fiber_total: YesNo | None = None
     ftth_available: YesNo | None = None
     available_for_sale: YesNo | None = None
     sale: YesNo | None = None
@@ -167,6 +169,7 @@ class AttendanceOut(ORMModel):
     current_plan: str | None
     opportunity: str | None
     non_opportunity: str | None
+    has_fiber_total: YesNo
     ftth_available: YesNo
     available_for_sale: YesNo
     sale: YesNo

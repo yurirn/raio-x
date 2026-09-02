@@ -64,6 +64,7 @@ def test_manager_cannot_read_or_write_outside_assigned_coordinators():
                     "password_number": 1,
                     "activity": "Físico",
                     "cpf_cnpj": "01234567890",
+                    "has_fiber_total": "NO",
                     "ftth_available": "YES",
                     "available_for_sale": "YES",
                     "sale": "NO",

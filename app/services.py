@@ -38,6 +38,7 @@ def attendance_snapshot(item: Attendance) -> dict:
             "current_plan": item.current_plan,
             "opportunity": item.opportunity,
             "non_opportunity": item.non_opportunity,
+            "has_fiber_total": item.has_fiber_total,
             "ftth_available": item.ftth_available,
             "available_for_sale": item.available_for_sale,
             "sale": item.sale,
