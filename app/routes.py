@@ -260,6 +260,12 @@ def update_attendance(
     before = attendance_snapshot(attendance)
     for key, value in changes.items():
         setattr(attendance, key, value)
+    if "opportunity" in changes or "non_opportunity" in changes:
+        if bool(attendance.opportunity) == bool(attendance.non_opportunity):
+            raise HTTPException(
+                status_code=422,
+                detail="Informe uma oportunidade ou uma não oportunidade",
+            )
     validate_reason(session, attendance.sale, attendance.reason_id)
     consultant = session.get(Consultant, attendance.consultant_id)
     if not consultant or consultant.store_id != attendance.store_id:
@@ -484,8 +490,11 @@ def export_attendances(
         [
             "Data",
             "Senha",
+            "Atuação",
             "CPF/CNPJ",
             "Plano",
+            "Oportunidade",
+            "Não oportunidade",
             "FTTH",
             "Disponível para venda",
             "Venda",
@@ -500,8 +509,11 @@ def export_attendances(
             [
                 item.date.isoformat(),
                 item.password_number,
+                item.activity,
                 item.cpf_cnpj,
                 item.current_plan,
+                item.opportunity,
+                item.non_opportunity,
                 item.ftth_available.value,
                 item.available_for_sale.value,
                 item.sale.value,

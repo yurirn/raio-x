@@ -12,7 +12,7 @@ const today = localDateInputValue();
 const firstDay = localDateInputValue(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 const colors = ["#0f766e", "#0891b2", "#2563eb", "#7c3aed", "#b45309", "#64748b"];
 const brDate = (value: string) => value.split("-").reverse().join("/");
-const currentPlans = ["Pre Pago", "Controle ate R$60,00", "Controle acima R$60,00", "Vivo Total", "Pos pago", "Fibra avulsa", "Outras Operadoras"];
+const currentPlans = ["Pre Pago", "Controle ate R$60,00", "Controle acima R$60,00", "Vivo Total", "Pos pago", "Fibra avulsa", "Outras Operadoras", "PJ"];
 
 function Metric({ label, value, icon: Icon }: { label: string; value: string | number; icon: typeof Activity }) {
   return <Card className="metric-card"><span className="metric-icon"><Icon size={19} /></span><span className="metric-label">{label}</span><strong className="metric-value">{value}</strong></Card>;

@@ -97,8 +97,11 @@ class UserPatch(BaseModel):
 class AttendanceIn(BaseModel):
     date: date
     password_number: int = Field(ge=1)
+    activity: str = Field(min_length=1, max_length=40)
     cpf_cnpj: str = Field(min_length=1, max_length=18)
     current_plan: str | None = Field(default=None, max_length=255)
+    opportunity: str | None = Field(default=None, max_length=40)
+    non_opportunity: str | None = Field(default=None, max_length=40)
     ftth_available: YesNo
     available_for_sale: YesNo
     sale: YesNo
@@ -117,13 +120,18 @@ class AttendanceIn(BaseModel):
     def reason_rules(self):
         if not self.reason_id:
             raise ValueError("Motivo é obrigatório para o atendimento")
+        if bool(self.opportunity) == bool(self.non_opportunity):
+            raise ValueError("Informe uma oportunidade ou uma não oportunidade")
         return self
 
 
 class AttendancePatch(BaseModel):
     password_number: int | None = Field(default=None, ge=1)
+    activity: str | None = Field(default=None, min_length=1, max_length=40)
     cpf_cnpj: str | None = Field(default=None, min_length=1, max_length=18)
     current_plan: str | None = Field(default=None, max_length=255)
+    opportunity: str | None = Field(default=None, max_length=40)
+    non_opportunity: str | None = Field(default=None, max_length=40)
     ftth_available: YesNo | None = None
     available_for_sale: YesNo | None = None
     sale: YesNo | None = None
@@ -135,8 +143,11 @@ class AttendanceOut(ORMModel):
     id: int
     date: date
     password_number: int
+    activity: str | None
     cpf_cnpj: str
     current_plan: str | None
+    opportunity: str | None
+    non_opportunity: str | None
     ftth_available: YesNo
     available_for_sale: YesNo
     sale: YesNo

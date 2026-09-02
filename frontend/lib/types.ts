@@ -33,8 +33,11 @@ export interface Attendance {
   id: number;
   date: string;
   password_number: number;
+  activity: string | null;
   cpf_cnpj: string;
   current_plan: string | null;
+  opportunity: string | null;
+  non_opportunity: string | null;
   ftth_available: YesNo;
   available_for_sale: YesNo;
   sale: YesNo;

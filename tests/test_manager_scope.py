@@ -62,10 +62,12 @@ def test_manager_cannot_read_or_write_outside_assigned_coordinators():
                 json={
                     "date": "2026-08-31",
                     "password_number": 1,
+                    "activity": "Físico",
                     "cpf_cnpj": "01234567890",
                     "ftth_available": "YES",
                     "available_for_sale": "YES",
                     "sale": "NO",
+                    "non_opportunity": "Dívida",
                     "reason_id": 1,
                     "consultant_id": 1,
                     "store_id": sergio_store.id,

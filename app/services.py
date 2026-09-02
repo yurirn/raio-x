@@ -33,8 +33,11 @@ def attendance_snapshot(item: Attendance) -> dict:
         for key, value in {
             "date": item.date.isoformat(),
             "password_number": item.password_number,
+            "activity": item.activity,
             "cpf_cnpj": item.cpf_cnpj,
             "current_plan": item.current_plan,
+            "opportunity": item.opportunity,
+            "non_opportunity": item.non_opportunity,
             "ftth_available": item.ftth_available,
             "available_for_sale": item.available_for_sale,
             "sale": item.sale,
