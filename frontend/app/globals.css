@@ -161,6 +161,7 @@ tbody tr:hover { background: #f8fbfb; } tbody tr:last-child td { border-bottom: 
 .visual-content, .visual-orb, .visual-stats { display: none; }
 
 .history-filters { grid-template-columns: repeat(7, minmax(120px, 1fr)); }
+.status-select { min-width: 196px; min-height: 40px; padding-inline: 10px; }
 .pagination { display: flex; min-height: 58px; align-items: center; justify-content: space-between; padding: 8px 16px; color: var(--muted); border-top: 1px solid var(--border); font-size: .82rem; }
 .pagination div { display: flex; gap: 6px; }.pagination button { display: grid; width: 40px; height: 40px; place-items: center; color: var(--text); background: #fff; border: 1px solid var(--border); border-radius: 8px; }.pagination button:disabled { cursor: not-allowed; opacity: .4; }
 .tabs { display: flex; gap: 4px; margin-bottom: 16px; overflow-x: auto; padding: 4px; background: #e9eef2; border-radius: 11px; }.tabs button { min-height: 40px; padding: 0 15px; white-space: nowrap; color: var(--muted); background: transparent; border: 0; border-radius: 8px; font-weight: 620; }.tabs button[aria-selected="true"] { color: var(--text); background: #fff; box-shadow: 0 2px 8px rgba(23,32,51,.08); }

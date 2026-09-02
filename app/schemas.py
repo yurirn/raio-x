@@ -106,6 +106,7 @@ class AttendanceIn(BaseModel):
     ftth_available: YesNo
     available_for_sale: YesNo
     sale: YesNo
+    sale_status: str | None = Field(default=None, min_length=1, max_length=40)
     order_number: str | None = Field(default=None, min_length=1, max_length=30)
     outcome_detail: str | None = Field(default=None, min_length=1, max_length=80)
     reason_id: int | None = None
@@ -147,6 +148,7 @@ class AttendancePatch(BaseModel):
     ftth_available: YesNo | None = None
     available_for_sale: YesNo | None = None
     sale: YesNo | None = None
+    sale_status: str | None = Field(default=None, min_length=1, max_length=40)
     order_number: str | None = Field(default=None, min_length=1, max_length=30)
     outcome_detail: str | None = Field(default=None, min_length=1, max_length=80)
     reason_id: int | None = None
@@ -173,6 +175,7 @@ class AttendanceOut(ORMModel):
     ftth_available: YesNo
     available_for_sale: YesNo
     sale: YesNo
+    sale_status: str | None
     order_number: str | None
     outcome_detail: str | None
     reason_id: int | None

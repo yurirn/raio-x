@@ -16,6 +16,24 @@ from app.models import (
     YesNo,
 )
 
+DEFAULT_SALE_STATUS = "Aguardando Instalação"
+SALE_STATUSES = (
+    DEFAULT_SALE_STATUS,
+    "Instalada",
+    "Cancelada",
+    "Reagendada",
+    "Pendência",
+)
+
+
+def sale_status_for(sale: YesNo, current: str | None = None) -> str | None:
+    if sale != YesNo.YES:
+        return None
+    if current in SALE_STATUSES:
+        return current
+    return DEFAULT_SALE_STATUS
+
+
 SALE_REASON_NAMES = {
     "HABILITAÇÃO PRÉ/PÓS",
     "UPGRADE",
@@ -42,6 +60,7 @@ def attendance_snapshot(item: Attendance) -> dict:
             "ftth_available": item.ftth_available,
             "available_for_sale": item.available_for_sale,
             "sale": item.sale,
+            "sale_status": item.sale_status,
             "order_number": item.order_number,
             "outcome_detail": item.outcome_detail,
             "reason_id": item.reason_id,

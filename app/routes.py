@@ -49,6 +49,8 @@ from app.services import (
     aggregate_metrics,
     attendance_snapshot,
     unused_passwords,
+    sale_status_for,
+    SALE_STATUSES,
     validate_hierarchy,
     validate_reason,
 )
@@ -178,8 +180,9 @@ def create_attendance(
     )
     validate_reason(session, payload.sale, payload.reason_id)
     attendance = Attendance(
-        **payload.model_dump(exclude={"password_number"}),
+        **payload.model_dump(exclude={"password_number", "sale_status"}),
         password_number=payload.password_number,
+        sale_status=sale_status_for(payload.sale),
         created_by=user.id,
         updated_by=user.id,
     )
@@ -213,6 +216,7 @@ def list_attendances(
     store_id: int | None = None,
     consultant_id: int | None = None,
     sale: YesNo | None = None,
+    sale_status: str | None = None,
     ftth_available: YesNo | None = None,
     reason_id: int | None = None,
     cpf_cnpj: str | None = None,
@@ -231,6 +235,7 @@ def list_attendances(
         (Attendance.store_id == store_id, store_id),
         (Attendance.consultant_id == consultant_id, consultant_id),
         (Attendance.sale == sale, sale),
+        (Attendance.sale_status == sale_status, sale_status),
         (Attendance.ftth_available == ftth_available, ftth_available),
         (Attendance.reason_id == reason_id, reason_id),
         (Attendance.password_number == password_number, password_number),
@@ -274,6 +279,13 @@ def update_attendance(
     before = attendance_snapshot(attendance)
     for key, value in changes.items():
         setattr(attendance, key, value)
+    if "sale" in changes or "sale_status" in changes:
+        if attendance.sale == YesNo.NO:
+            attendance.sale_status = None
+        elif "sale_status" in changes and attendance.sale_status not in SALE_STATUSES:
+            raise HTTPException(status_code=422, detail="Status de venda inválido")
+        else:
+            attendance.sale_status = sale_status_for(attendance.sale, attendance.sale_status)
     if "opportunity" in changes or "non_opportunity" in changes:
         if attendance.opportunity and attendance.non_opportunity:
             raise HTTPException(status_code=422, detail="Informe apenas uma classificação")
@@ -496,6 +508,7 @@ def export_attendances(
     store_id: int | None = None,
     consultant_id: int | None = None,
     current_plan: str | None = None,
+    sale: YesNo | None = None,
     session: Session = Depends(get_session),
     user: User = Depends(current_user),
 ):
@@ -506,6 +519,8 @@ def export_attendances(
         query = query.where(Attendance.store_id == store_id)
     if consultant_id:
         query = query.where(Attendance.consultant_id == consultant_id)
+    if sale:
+        query = query.where(Attendance.sale == sale)
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = "Atendimentos"
@@ -522,6 +537,7 @@ def export_attendances(
             "FTTH",
             "Disponível para venda",
             "Venda",
+            "Status da venda",
             "Número da ordem",
             "Classificação final",
             "Motivo",
@@ -544,6 +560,7 @@ def export_attendances(
                 item.ftth_available.value,
                 item.available_for_sale.value,
                 item.sale.value,
+                item.sale_status,
                 item.order_number,
                 item.outcome_detail,
                 reasons.get(item.reason_id, ""),

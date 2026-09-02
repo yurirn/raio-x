@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, BarChart3, Building2, ClipboardList, History, LogOut, Menu, Users, X } from "lucide-react";
+import { Activity, BarChart3, Building2, ClipboardList, History, LogOut, Menu, Settings2, Users, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -13,6 +13,7 @@ const navigation = [
   { href: "/entrada", label: "Entrada de dados", icon: ClipboardList },
   { href: "/consolidado", label: "Consolidado", icon: BarChart3 },
   { href: "/historico", label: "Histórico", icon: History },
+  { href: "/gerenciamento", label: "Gerenciamento", icon: Settings2 },
   { href: "/cadastros", label: "Cadastros", icon: Building2, admin: true },
   { href: "/usuarios", label: "Usuários", icon: Users, admin: true },
 ];

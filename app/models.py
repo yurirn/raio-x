@@ -125,6 +125,7 @@ class Attendance(Timestamped, Base):
     ftth_available: Mapped[YesNo] = mapped_column(Enum(YesNo, name="yes_no"), index=True)
     available_for_sale: Mapped[YesNo] = mapped_column(Enum(YesNo, name="yes_no"), index=True)
     sale: Mapped[YesNo] = mapped_column(Enum(YesNo, name="yes_no"), index=True)
+    sale_status: Mapped[str | None] = mapped_column(String(40), index=True)
     order_number: Mapped[str | None] = mapped_column(String(30))
     outcome_detail: Mapped[str | None] = mapped_column(String(80))
     reason_id: Mapped[int | None] = mapped_column(ForeignKey("reasons.id"), index=True)

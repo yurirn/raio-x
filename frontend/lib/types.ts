@@ -49,6 +49,7 @@ export interface Attendance {
   ftth_available: YesNo;
   available_for_sale: YesNo;
   sale: YesNo;
+  sale_status: string | null;
   order_number: string | null;
   outcome_detail: string | null;
   reason_id: number | null;
