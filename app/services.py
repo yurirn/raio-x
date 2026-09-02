@@ -121,7 +121,7 @@ def validate_hierarchy(
 
 def validate_reason(session: Session, sale: YesNo, reason_id: int | None) -> None:
     if not reason_id:
-        raise HTTPException(status_code=422, detail="Motivo é obrigatório para o atendimento")
+        return
     reason = session.get(Reason, reason_id)
     if not reason or not reason.active:
         raise HTTPException(status_code=422, detail="Motivo inválido ou inativo")

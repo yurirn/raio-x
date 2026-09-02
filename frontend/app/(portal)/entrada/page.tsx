@@ -27,15 +27,6 @@ const opportunityChoices = [
 ] as const;
 const saleOutcomes = ["Fibra avulsa", "Vivo Total", "Totalização", "PJ"];
 const nonSaleOutcomes = ["Não é decisor", "Não quer fibra", "Oferta concorrência", "PJ"];
-const saleReasonNames = new Set([
-  "HABILITAÇÃO PRÉ/PÓS",
-  "UPGRADE",
-  "TOTALIZAÇÃO",
-  "PRÉ PAGO",
-  "OUTRAS OPERADORAS",
-  "FIBRA AVULSA",
-  "PJ",
-]);
 const unusedPreviewLimit = 5;
 const initialForm = { password_number: "", activity: "", cpf_cnpj: "", current_plan: "", opportunity: "", non_opportunity: "", has_fiber_total: "" as YesNo | "", ftth_available: "" as YesNo | "", available_for_sale: "NO" as YesNo, sale: "" as YesNo | "", order_number: "", outcome_detail: "", reason_id: "", consultant_id: "" };
 
@@ -104,7 +95,19 @@ export default function EntryPage() {
     const isLegacyRecord = legacyRecord();
     setBusy(true);
     try {
-      const payload = { ...form, password_number: Number(form.password_number), reason_id: Number(form.reason_id), consultant_id: Number(form.consultant_id), available_for_sale: form.opportunity ? "YES" : "NO" };
+      const blank = (value: string) => value.trim() || null;
+      const payload = {
+        ...form,
+        password_number: Number(form.password_number),
+        reason_id: form.reason_id ? Number(form.reason_id) : null,
+        consultant_id: Number(form.consultant_id),
+        available_for_sale: form.opportunity ? "YES" : "NO",
+        current_plan: blank(form.current_plan),
+        opportunity: blank(form.opportunity),
+        non_opportunity: blank(form.non_opportunity),
+        order_number: blank(form.order_number),
+        outcome_detail: blank(form.outcome_detail),
+      };
       const legacyPayload: Partial<typeof payload> = { ...payload };
       delete legacyPayload.activity;
       delete legacyPayload.opportunity;
@@ -122,7 +125,6 @@ export default function EntryPage() {
   function finalize(event: FormEvent) {
     event.preventDefault();
     setError("");
-    if (!form.reason_id) { setError(`Selecione o motivo ${form.sale === "YES" ? "da venda" : "da não venda"}.`); return; }
     if (form.sale === "YES" && !form.order_number) { setError("Informe o número da ordem para finalizar a venda."); return; }
     if (!form.outcome_detail) { setError("Selecione a classificação final do atendimento."); return; }
     void saveAttendance();
@@ -132,7 +134,6 @@ export default function EntryPage() {
 
   const consultantName = useMemo(() => Object.fromEntries(consultants.map((item) => [item.id, item.name])), [consultants]);
   const reasonName = useMemo(() => Object.fromEntries(reasons.map((item) => [item.id, item.name])), [reasons]);
-  const visibleReasons = reasons.filter((item) => form.sale === "YES" ? saleReasonNames.has(item.name) : !saleReasonNames.has(item.name));
   const filtered = items.filter((item) => `${item.password_number} ${item.cpf_cnpj} ${consultantName[item.consultant_id] ?? ""}`.toLowerCase().includes(search.toLowerCase()));
   return <>
     <PageHeader eyebrow="Operação do dia" title="Entrada de dados" description="Registre cada atendimento com poucos cliques. A estrutura selecionada permanece para o próximo lançamento." action={store ? <aside className="unused-passwords" aria-live="polite"><div className="unused-passwords-head"><span>Senhas não palitadas</span><strong>{unused.length}</strong></div>{unused.length ? <p className="unused-passwords-list">{unused.slice(0, unusedPreviewLimit).map(formatPassword).join(" · ")}</p> : <p className="unused-passwords-empty">Nenhuma senha em aberto hoje.</p>}{unused.length > unusedPreviewLimit && <Button type="button" variant="ghost" onClick={() => setUnusedOpen(true)}>Ver mais</Button>}</aside> : undefined} />
@@ -163,7 +164,7 @@ export default function EntryPage() {
       </form>
     </div></Card>
     {unusedOpen && <div className="modal-layer" role="presentation"><div className="modal" role="dialog" aria-modal="true" aria-labelledby="unused-title"><div className="modal-header"><div><span className="eyebrow">Senhas do dia</span><h2 id="unused-title">Senhas não palitadas</h2></div><button className="icon-button" type="button" onClick={() => setUnusedOpen(false)} aria-label="Fechar"><X size={20}/></button></div><div className="modal-body"><p>{unused.length} senha{unused.length === 1 ? "" : "s"} sem atendimento nesta loja.</p><div className="unused-password-grid" tabIndex={0}>{unused.map((item) => <span className="unused-password-chip" key={item}>{formatPassword(item)}</span>)}</div></div><div className="modal-footer"><Button type="button" variant="ghost" onClick={() => setUnusedOpen(false)}>Fechar</Button></div></div></div>}
-    {finalizationOpen && <div className="modal-layer" role="presentation"><div className="modal" role="dialog" aria-modal="true" aria-labelledby="finalization-title"><div className="modal-header"><div><span className="eyebrow">Finalizar atendimento</span><h2 id="finalization-title">Venda {form.sale === "YES" ? "realizada" : "não realizada"}</h2></div><button className="icon-button" type="button" onClick={() => setFinalizationOpen(false)} aria-label="Fechar"><X size={20}/></button></div><form onSubmit={finalize}><div className="modal-body">{form.sale === "YES" && <Field label="Número da ordem" htmlFor="order-number" hint="Digite somente os números." required><input id="order-number" value={form.order_number} onChange={(event) => update("order_number", event.target.value.replace(/\D/g, ""))} inputMode="numeric" autoFocus required /></Field>}<Field label={form.sale === "YES" ? "Motivo da venda" : "Motivo da não venda"} htmlFor="reason" required><SearchableSelect id="reason" value={form.reason_id} onChange={(value) => update("reason_id", value)} options={visibleReasons.map((item) => ({ value: String(item.id), label: item.name }))} required /></Field><Field label="Classificação final" htmlFor="outcome-detail" required><SearchableSelect id="outcome-detail" value={form.outcome_detail} onChange={(value) => update("outcome_detail", value)} options={(form.sale === "YES" ? saleOutcomes : nonSaleOutcomes).map((item) => ({ value: item, label: item }))} required /></Field>{error && <p className="form-error" role="alert">{error}</p>}</div><div className="modal-footer"><Button type="button" variant="ghost" onClick={() => setFinalizationOpen(false)}>Voltar</Button><Button type="submit" busy={busy}>Finalizar atendimento</Button></div></form></div></div>}
+    {finalizationOpen && <div className="modal-layer" role="presentation"><div className="modal" role="dialog" aria-modal="true" aria-labelledby="finalization-title"><div className="modal-header"><div><span className="eyebrow">Finalizar atendimento</span><h2 id="finalization-title">Venda {form.sale === "YES" ? "realizada" : "não realizada"}</h2></div><button className="icon-button" type="button" onClick={() => setFinalizationOpen(false)} aria-label="Fechar"><X size={20}/></button></div><form onSubmit={finalize}><div className="modal-body">{form.sale === "YES" && <Field label="Número da ordem" htmlFor="order-number" hint="Digite somente os números." required><input id="order-number" value={form.order_number} onChange={(event) => update("order_number", event.target.value.replace(/\D/g, ""))} inputMode="numeric" autoFocus required /></Field>}<Field label="Classificação final" htmlFor="outcome-detail" required><SearchableSelect id="outcome-detail" value={form.outcome_detail} onChange={(value) => update("outcome_detail", value)} options={(form.sale === "YES" ? saleOutcomes : nonSaleOutcomes).map((item) => ({ value: item, label: item }))} required /></Field>{error && <p className="form-error" role="alert">{error}</p>}</div><div className="modal-footer"><Button type="button" variant="ghost" onClick={() => setFinalizationOpen(false)}>Voltar</Button><Button type="submit" busy={busy}>Finalizar atendimento</Button></div></form></div></div>}
     {notice && <div className="toast" role="status"><CheckCircle2 size={19} />{notice}</div>}
     <Card style={{ marginTop: 22 }}><div className="card-header"><div><h2>Atendimentos do dia</h2><p>{items.length} registro{items.length === 1 ? "" : "s"} na loja selecionada</p></div><div className="table-search"><Search size={17}/><input aria-label="Pesquisar atendimentos" placeholder="Senha, CPF/CNPJ ou consultor" value={search} onChange={(e) => setSearch(e.target.value)} /></div></div>
       {filtered.length ? <div className="table-wrap"><table><thead><tr><th>Senha</th><th>Atuação</th><th>CPF/CNPJ</th><th>Plano</th><th>Fibra-Total</th><th>Oportunidade</th><th>Não oportunidade</th><th>FTTH</th><th>Disp. venda</th><th>Venda</th><th>Ordem</th><th>Classificação final</th><th>Motivo</th><th>Consultor</th><th>Horário</th><th>Ações</th></tr></thead><tbody>{filtered.map((item) => <tr key={item.id}><td className="numeric"><strong>{item.password_number.toString().padStart(3,"0")}</strong></td><td>{item.activity || "—"}</td><td className="numeric">{item.cpf_cnpj}</td><td>{item.current_plan || "—"}</td><td><StatusBadge value={item.has_fiber_total}/></td><td>{item.opportunity || "—"}</td><td>{item.non_opportunity || "—"}</td><td><StatusBadge value={item.ftth_available}/></td><td><StatusBadge value={item.available_for_sale}/></td><td><StatusBadge value={item.sale}/></td><td className="numeric">{item.order_number || "—"}</td><td>{item.outcome_detail || "—"}</td><td>{item.reason_id ? reasonName[item.reason_id] : "—"}</td><td>{consultantName[item.consultant_id] ?? "—"}</td><td className="numeric">{new Date(item.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</td><td><div className="row-actions"><button onClick={() => edit(item)} aria-label={`Editar senha ${item.password_number}`}><Pencil size={16}/></button><button className="danger" onClick={() => remove(item)} aria-label={`Excluir senha ${item.password_number}`}><Trash2 size={16}/></button></div></td></tr>)}</tbody></table></div> : <EmptyState title={store ? "Nenhum atendimento encontrado" : "Selecione uma loja"} description={store ? "Registre o primeiro atendimento ou ajuste a pesquisa." : "Os atendimentos do dia aparecerão aqui."} />}

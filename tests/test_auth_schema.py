@@ -57,10 +57,7 @@ def test_attendance_requires_a_manually_informed_password_number():
     with pytest.raises(ValidationError):
         AttendanceIn(**payload)
 
-    with pytest.raises(ValidationError):
-        AttendanceIn(**payload, password_number=123)
-
-    attendance = AttendanceIn(**payload, password_number=123, reason_id=1)
+    attendance = AttendanceIn(**payload, password_number=123)
 
     assert attendance.password_number == 123
 

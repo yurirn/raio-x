@@ -120,10 +120,23 @@ class AttendanceIn(BaseModel):
     def preserve_document_as_text(cls, value: str) -> str:
         return value.strip()
 
+    @field_validator(
+        "current_plan",
+        "opportunity",
+        "non_opportunity",
+        "sale_status",
+        "order_number",
+        "outcome_detail",
+        mode="before",
+    )
+    @classmethod
+    def empty_optional_text(cls, value: str | None) -> str | None:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
     @model_validator(mode="after")
     def reason_rules(self):
-        if not self.reason_id:
-            raise ValueError("Motivo é obrigatório para o atendimento")
         if self.opportunity and self.non_opportunity:
             raise ValueError("Informe apenas uma classificação")
         if not self.outcome_detail:
@@ -153,6 +166,23 @@ class AttendancePatch(BaseModel):
     outcome_detail: str | None = Field(default=None, min_length=1, max_length=80)
     reason_id: int | None = None
     consultant_id: int | None = None
+
+    @field_validator(
+        "activity",
+        "cpf_cnpj",
+        "current_plan",
+        "opportunity",
+        "non_opportunity",
+        "sale_status",
+        "order_number",
+        "outcome_detail",
+        mode="before",
+    )
+    @classmethod
+    def empty_optional_text(cls, value: str | None) -> str | None:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
 
 
 class UnusedPasswordsOut(BaseModel):
