@@ -67,6 +67,7 @@ def test_manager_cannot_read_or_write_outside_assigned_coordinators():
                     "ftth_available": "YES",
                     "available_for_sale": "YES",
                     "sale": "NO",
+                    "outcome_detail": "Não é decisor",
                     "non_opportunity": "Dívida",
                     "reason_id": 1,
                     "consultant_id": 1,

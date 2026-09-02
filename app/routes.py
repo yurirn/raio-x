@@ -32,6 +32,7 @@ from app.schemas import (
     RegionalIn,
     StoreIn,
     TokenOut,
+    UnusedPasswordsOut,
     UserIn,
     UserPatch,
 )
@@ -47,6 +48,7 @@ from app.services import (
     add_audit,
     aggregate_metrics,
     attendance_snapshot,
+    unused_passwords,
     validate_hierarchy,
     validate_reason,
 )
@@ -245,6 +247,18 @@ def list_attendances(
     return {"items": items, "page": page, "page_size": page_size, "total": total}
 
 
+@router.get("/attendances/unused-passwords", response_model=UnusedPasswordsOut)
+def list_unused_passwords(
+    store_id: int,
+    day: date = Query(..., alias="date"),
+    session: Session = Depends(get_session),
+    user: User = Depends(current_user),
+):
+    assert_store_access(session, user, store_id)
+    items = unused_passwords(session, store_id, day)
+    return {"date": day, "store_id": store_id, "items": items, "total": len(items)}
+
+
 @router.patch("/attendances/{attendance_id}", response_model=AttendanceOut)
 def update_attendance(
     attendance_id: int,
@@ -266,6 +280,18 @@ def update_attendance(
                 status_code=422,
                 detail="Informe uma oportunidade ou uma não oportunidade",
             )
+    if "order_number" in changes or "outcome_detail" in changes:
+        if not attendance.outcome_detail:
+            raise HTTPException(status_code=422, detail="Informe a classificação final do atendimento")
+        if attendance.sale == YesNo.YES and not attendance.order_number:
+            raise HTTPException(status_code=422, detail="Número da ordem é obrigatório para venda realizada")
+        if attendance.sale == YesNo.NO and attendance.order_number:
+            raise HTTPException(
+                status_code=422,
+                detail="Número da ordem deve ser informado apenas para venda realizada",
+            )
+        if attendance.order_number and not attendance.order_number.isdigit():
+            raise HTTPException(status_code=422, detail="Número da ordem deve conter apenas números")
     validate_reason(session, attendance.sale, attendance.reason_id)
     consultant = session.get(Consultant, attendance.consultant_id)
     if not consultant or consultant.store_id != attendance.store_id:
@@ -498,6 +524,8 @@ def export_attendances(
             "FTTH",
             "Disponível para venda",
             "Venda",
+            "Número da ordem",
+            "Classificação final",
             "Motivo",
             "Consultor",
         ]
@@ -517,6 +545,8 @@ def export_attendances(
                 item.ftth_available.value,
                 item.available_for_sale.value,
                 item.sale.value,
+                item.order_number,
+                item.outcome_detail,
                 reasons.get(item.reason_id, ""),
                 consultants.get(item.consultant_id, ""),
             ]

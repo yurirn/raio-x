@@ -41,6 +41,8 @@ def attendance_snapshot(item: Attendance) -> dict:
             "ftth_available": item.ftth_available,
             "available_for_sale": item.available_for_sale,
             "sale": item.sale,
+            "order_number": item.order_number,
+            "outcome_detail": item.outcome_detail,
             "reason_id": item.reason_id,
             "consultant_id": item.consultant_id,
             "store_id": item.store_id,
@@ -107,6 +109,24 @@ def validate_reason(session: Session, sale: YesNo, reason_id: int | None) -> Non
         raise HTTPException(status_code=422, detail="Selecione um motivo de venda válido")
     if sale == YesNo.NO and reason.name in SALE_REASON_NAMES:
         raise HTTPException(status_code=422, detail="Selecione um motivo de não venda válido")
+
+
+def unused_password_numbers(used: list[int]) -> list[int]:
+    if not used:
+        return []
+    taken = set(used)
+    return [number for number in range(1, max(taken)) if number not in taken]
+
+
+def unused_passwords(session: Session, store_id: int, day: date) -> list[int]:
+    used = list(
+        session.scalars(
+            select(Attendance.password_number).where(
+                Attendance.store_id == store_id, Attendance.date == day
+            )
+        )
+    )
+    return unused_password_numbers(used)
 
 
 def next_password(session: Session, store_id: int, day: date) -> int:

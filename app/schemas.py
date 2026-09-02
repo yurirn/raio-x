@@ -105,6 +105,8 @@ class AttendanceIn(BaseModel):
     ftth_available: YesNo
     available_for_sale: YesNo
     sale: YesNo
+    order_number: str | None = Field(default=None, min_length=1, max_length=30)
+    outcome_detail: str | None = Field(default=None, min_length=1, max_length=80)
     reason_id: int | None = None
     consultant_id: int
     store_id: int
@@ -122,6 +124,14 @@ class AttendanceIn(BaseModel):
             raise ValueError("Motivo é obrigatório para o atendimento")
         if bool(self.opportunity) == bool(self.non_opportunity):
             raise ValueError("Informe uma oportunidade ou uma não oportunidade")
+        if not self.outcome_detail:
+            raise ValueError("Informe a classificação final do atendimento")
+        if self.sale == YesNo.YES and not self.order_number:
+            raise ValueError("Número da ordem é obrigatório para venda realizada")
+        if self.sale == YesNo.NO and self.order_number:
+            raise ValueError("Número da ordem deve ser informado apenas para venda realizada")
+        if self.order_number and not self.order_number.isdigit():
+            raise ValueError("Número da ordem deve conter apenas números")
         return self
 
 
@@ -135,8 +145,17 @@ class AttendancePatch(BaseModel):
     ftth_available: YesNo | None = None
     available_for_sale: YesNo | None = None
     sale: YesNo | None = None
+    order_number: str | None = Field(default=None, min_length=1, max_length=30)
+    outcome_detail: str | None = Field(default=None, min_length=1, max_length=80)
     reason_id: int | None = None
     consultant_id: int | None = None
+
+
+class UnusedPasswordsOut(BaseModel):
+    date: date
+    store_id: int
+    items: list[int]
+    total: int
 
 
 class AttendanceOut(ORMModel):
@@ -151,6 +170,8 @@ class AttendanceOut(ORMModel):
     ftth_available: YesNo
     available_for_sale: YesNo
     sale: YesNo
+    order_number: str | None
+    outcome_detail: str | None
     reason_id: int | None
     consultant_id: int
     store_id: int

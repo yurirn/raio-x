@@ -1,10 +1,10 @@
 "use client";
 
-import { CheckCircle2, Pencil, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
+import { CheckCircle2, Pencil, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { localDateInputValue } from "@/lib/date";
-import type { Attendance, NamedEntity, StoreContext, User, YesNo } from "@/lib/types";
+import type { Attendance, NamedEntity, StoreContext, UnusedPasswords, User, YesNo } from "@/lib/types";
 import { Button, Card, EmptyState, Field, PageHeader, SearchableSelect, StatusBadge } from "@/components/ui";
 
 const today = localDateInputValue();
@@ -21,6 +21,8 @@ const plans = [
 const activities = ["Físico", "Mailing", "Não aguardou"];
 const opportunities = ["Disp Venda", "Pinga Lote", "Alívio", "Cond Porta"];
 const nonOpportunities = ["Dívida", "Fidelidade", "Fibra end", "Realta"];
+const saleOutcomes = ["Fibra avulsa", "Vivo Total", "Totalização", "PJ"];
+const nonSaleOutcomes = ["Não é decisor", "Não quer fibra", "Oferta concorrência", "PJ"];
 const saleReasonNames = new Set([
   "HABILITAÇÃO PRÉ/PÓS",
   "UPGRADE",
@@ -30,7 +32,12 @@ const saleReasonNames = new Set([
   "FIBRA AVULSA",
   "PJ",
 ]);
-const initialForm = { password_number: "", activity: "", cpf_cnpj: "", current_plan: "", opportunity: "", non_opportunity: "", ftth_available: "YES" as YesNo, available_for_sale: "YES" as YesNo, sale: "NO" as YesNo, reason_id: "", consultant_id: "" };
+const unusedPreviewLimit = 5;
+const initialForm = { password_number: "", activity: "", cpf_cnpj: "", current_plan: "", opportunity: "", non_opportunity: "", ftth_available: "YES" as YesNo, available_for_sale: "YES" as YesNo, sale: "NO" as YesNo, order_number: "", outcome_detail: "", reason_id: "", consultant_id: "" };
+
+function formatPassword(value: number) {
+  return value.toString().padStart(3, "0");
+}
 
 function YesNoField({ label, name, value, onChange }: { label: string; name: string; value: YesNo; onChange: (value: YesNo) => void }) {
   return <Field label={label} htmlFor={`${name}-yes`} required><div className="segmented" role="group" aria-label={label}><button id={`${name}-yes`} type="button" className="segment" aria-pressed={value === "YES"} onClick={() => onChange("YES")}>Sim</button><button type="button" className="segment" aria-pressed={value === "NO"} onClick={() => onChange("NO")}>Não</button></div></Field>;
@@ -43,6 +50,9 @@ export default function EntryPage() {
   const [storeContext, setStoreContext] = useState<StoreContext | null>(null);
   const [form, setForm] = useState(initialForm); const [items, setItems] = useState<Attendance[]>([]);
   const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [notice, setNotice] = useState(""); const [search, setSearch] = useState(""); const [editing, setEditing] = useState<number | null>(null);
+  const [finalizationOpen, setFinalizationOpen] = useState(false);
+  const [unusedOpen, setUnusedOpen] = useState(false);
+  const [unused, setUnused] = useState<number[]>([]);
 
   useEffect(() => { Promise.all([api<NamedEntity[]>("/catalog/regionals"), api<NamedEntity[]>("/catalog/reasons"), api<User>("/me")]).then(([a, b, profile]) => { setRegionals(a); setReasons(b); if (profile.store_context) { setStoreContext(profile.store_context); setRegional(profile.store_context.regional_id.toString()); setCoordinator(profile.store_context.coordinator_id.toString()); setStore(profile.store_context.store_id.toString()); } }); }, []);
   useEffect(() => { if (!storeContext) { setCoordinator(""); setStore(""); } api<NamedEntity[]>(`/catalog/coordinators${regional ? `?regional_id=${regional}` : ""}`).then(setCoordinators); }, [regional, storeContext]);
@@ -50,22 +60,35 @@ export default function EntryPage() {
   useEffect(() => { setForm((old) => ({ ...old, consultant_id: "" })); if (store) api<NamedEntity[]>(`/catalog/consultants?store_id=${store}`).then(setConsultants); else setConsultants([]); }, [store]);
 
   const loadDay = useCallback(async () => {
-    if (!store) { setItems([]); return; }
-    const list = await api<{ items: Attendance[] }>(`/attendances?start_date=${date}&end_date=${date}&store_id=${store}&page_size=200`);
+    if (!store) { setItems([]); setUnused([]); return; }
+    const [list, pending] = await Promise.all([
+      api<{ items: Attendance[] }>(`/attendances?start_date=${date}&end_date=${date}&store_id=${store}&page_size=200`),
+      api<UnusedPasswords>(`/attendances/unused-passwords?date=${date}&store_id=${store}`),
+    ]);
     setItems(list.items);
+    setUnused(pending.items);
   }, [date, store]);
   useEffect(() => { loadDay().catch((reason) => setError(reason.message)); }, [loadDay]);
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) { setForm((old) => ({ ...old, [key]: value })); }
   function selectOpportunity(value: string) { setForm((old) => ({ ...old, opportunity: value, non_opportunity: value ? "" : old.non_opportunity })); }
   function selectNonOpportunity(value: string) { setForm((old) => ({ ...old, non_opportunity: value, opportunity: value ? "" : old.opportunity })); }
-  async function submit(event: FormEvent) {
+  function legacyRecord() { return Boolean(editing && !form.activity && !form.opportunity && !form.non_opportunity && !form.order_number && !form.outcome_detail); }
+  function validateEntry() {
+    if (!regional || !coordinator || !store) { setError("Selecione Regional, Coordenador e Loja."); return false; }
+    if (!form.reason_id) { setError(`Selecione o motivo ${form.sale === "YES" ? "da venda" : "da não venda"}.`); return false; }
+    if (!legacyRecord() && !form.activity) { setError("Selecione a atuação."); return false; }
+    if (!legacyRecord() && Boolean(form.opportunity) === Boolean(form.non_opportunity)) { setError("Selecione uma oportunidade ou uma não oportunidade."); return false; }
+    return true;
+  }
+  function submit(event: FormEvent) {
     event.preventDefault(); setError(""); setNotice("");
-    if (!regional || !coordinator || !store) { setError("Selecione Regional, Coordenador e Loja."); return; }
-    if (!form.reason_id) { setError(`Selecione o motivo ${form.sale === "YES" ? "da venda" : "da não venda"}.`); return; }
-    const legacyRecord = Boolean(editing && !form.activity && !form.opportunity && !form.non_opportunity);
-    if (!legacyRecord && !form.activity) { setError("Selecione a atuação."); return; }
-    if (!legacyRecord && Boolean(form.opportunity) === Boolean(form.non_opportunity)) { setError("Selecione uma oportunidade ou uma não oportunidade."); return; }
+    if (!validateEntry()) return;
+    if (legacyRecord()) { void saveAttendance(); return; }
+    setFinalizationOpen(true);
+  }
+  async function saveAttendance() {
+    const isLegacyRecord = legacyRecord();
     setBusy(true);
     try {
       const payload = { ...form, password_number: Number(form.password_number), reason_id: Number(form.reason_id), consultant_id: Number(form.consultant_id) };
@@ -73,15 +96,18 @@ export default function EntryPage() {
       delete legacyPayload.activity;
       delete legacyPayload.opportunity;
       delete legacyPayload.non_opportunity;
-      const requestPayload = legacyRecord ? legacyPayload : payload;
+      delete legacyPayload.order_number;
+      delete legacyPayload.outcome_detail;
+      const requestPayload = isLegacyRecord ? legacyPayload : payload;
       if (editing) await api(`/attendances/${editing}`, { method: "PATCH", body: JSON.stringify(requestPayload) });
       else await api("/attendances", { method: "POST", body: JSON.stringify({ ...requestPayload, date, regional_id: Number(regional), coordinator_id: Number(coordinator), store_id: Number(store) }) });
-      setForm(initialForm); setEditing(null); setNotice(editing ? "Atendimento atualizado." : "Atendimento registrado."); await loadDay();
+      setFinalizationOpen(false); setForm(initialForm); setEditing(null); setNotice(editing ? "Atendimento atualizado." : "Atendimento registrado."); await loadDay();
       window.setTimeout(() => setNotice(""), 4000);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível salvar."); }
     finally { setBusy(false); }
   }
-  function edit(item: Attendance) { setEditing(item.id); setForm({ password_number: item.password_number.toString(), activity: item.activity ?? "", cpf_cnpj: item.cpf_cnpj, current_plan: item.current_plan ?? "", opportunity: item.opportunity ?? "", non_opportunity: item.non_opportunity ?? "", ftth_available: item.ftth_available, available_for_sale: item.available_for_sale, sale: item.sale, reason_id: item.reason_id?.toString() ?? "", consultant_id: item.consultant_id.toString() }); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function finalize(event: FormEvent) { event.preventDefault(); setError(""); if (form.sale === "YES" && !form.order_number) { setError("Informe o número da ordem para finalizar a venda."); return; } if (!form.outcome_detail) { setError("Selecione a classificação final do atendimento."); return; } void saveAttendance(); }
+  function edit(item: Attendance) { setEditing(item.id); setForm({ password_number: item.password_number.toString(), activity: item.activity ?? "", cpf_cnpj: item.cpf_cnpj, current_plan: item.current_plan ?? "", opportunity: item.opportunity ?? "", non_opportunity: item.non_opportunity ?? "", ftth_available: item.ftth_available, available_for_sale: item.available_for_sale, sale: item.sale, order_number: item.order_number ?? "", outcome_detail: item.outcome_detail ?? "", reason_id: item.reason_id?.toString() ?? "", consultant_id: item.consultant_id.toString() }); window.scrollTo({ top: 0, behavior: "smooth" }); }
   async function remove(item: Attendance) { if (!window.confirm(`Excluir a senha ${item.password_number}? Esta ação ficará registrada na auditoria.`)) return; try { await api(`/attendances/${item.id}`, { method: "DELETE" }); await loadDay(); } catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível excluir."); } }
 
   const consultantName = useMemo(() => Object.fromEntries(consultants.map((item) => [item.id, item.name])), [consultants]);
@@ -89,7 +115,7 @@ export default function EntryPage() {
   const visibleReasons = reasons.filter((item) => form.sale === "YES" ? saleReasonNames.has(item.name) : !saleReasonNames.has(item.name));
   const filtered = items.filter((item) => `${item.password_number} ${item.cpf_cnpj} ${consultantName[item.consultant_id] ?? ""}`.toLowerCase().includes(search.toLowerCase()));
   return <>
-    <PageHeader eyebrow="Operação do dia" title="Entrada de dados" description="Registre cada atendimento com poucos cliques. A estrutura selecionada permanece para o próximo lançamento." />
+    <PageHeader eyebrow="Operação do dia" title="Entrada de dados" description="Registre cada atendimento com poucos cliques. A estrutura selecionada permanece para o próximo lançamento." action={store ? <aside className="unused-passwords" aria-live="polite"><div className="unused-passwords-head"><span>Senhas não usadas</span><strong>{unused.length}</strong></div>{unused.length ? <p className="unused-passwords-list">{unused.slice(0, unusedPreviewLimit).map(formatPassword).join(" · ")}</p> : <p className="unused-passwords-empty">Nenhuma senha em aberto hoje.</p>}{unused.length > unusedPreviewLimit && <Button type="button" variant="ghost" onClick={() => setUnusedOpen(true)}>Ver mais</Button>}</aside> : undefined} />
     <Card><div className="card-body">
       <div className="context-grid">
         <Field label="Data" htmlFor="entry-date" required><input id="entry-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
@@ -110,15 +136,17 @@ export default function EntryPage() {
           <Field label="Não oportunidade" htmlFor="non-opportunity" required><SearchableSelect id="non-opportunity" value={form.non_opportunity} onChange={selectNonOpportunity} disabled={Boolean(form.opportunity)} options={nonOpportunities.map((item) => ({ value: item, label: item }))} required /></Field>
           <YesNoField label="Possui disponibilidade FTTH?" name="ftth" value={form.ftth_available} onChange={(value) => update("ftth_available", value)} />
           <YesNoField label="Disponível para venda?" name="available" value={form.available_for_sale} onChange={(value) => update("available_for_sale", value)} />
-          <YesNoField label="Venda realizada?" name="sale" value={form.sale} onChange={(value) => { update("sale", value); update("reason_id", ""); }} />
+          <YesNoField label="Venda realizada?" name="sale" value={form.sale} onChange={(value) => { update("sale", value); update("reason_id", ""); update("order_number", ""); update("outcome_detail", ""); }} />
         </div>
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="form-actions">{editing && <Button type="button" variant="ghost" onClick={() => { setEditing(null); setForm(initialForm); }}>Cancelar edição</Button>}<Button type="submit" busy={busy} disabled={!store}><Plus size={18} /> {editing ? "Salvar alterações" : "Registrar atendimento"}</Button></div>
       </form>
     </div></Card>
+    {unusedOpen && <div className="modal-layer" role="presentation"><div className="modal" role="dialog" aria-modal="true" aria-labelledby="unused-title"><div className="modal-header"><div><span className="eyebrow">Senhas do dia</span><h2 id="unused-title">Senhas não usadas</h2></div><button className="icon-button" type="button" onClick={() => setUnusedOpen(false)} aria-label="Fechar"><X size={20}/></button></div><div className="modal-body"><p>{unused.length} senha{unused.length === 1 ? "" : "s"} sem atendimento nesta loja.</p><div className="unused-password-grid" tabIndex={0}>{unused.map((item) => <span className="unused-password-chip" key={item}>{formatPassword(item)}</span>)}</div></div><div className="modal-footer"><Button type="button" variant="ghost" onClick={() => setUnusedOpen(false)}>Fechar</Button></div></div></div>}
+    {finalizationOpen && <div className="modal-layer" role="presentation"><div className="modal" role="dialog" aria-modal="true" aria-labelledby="finalization-title"><div className="modal-header"><div><span className="eyebrow">Finalizar atendimento</span><h2 id="finalization-title">Venda {form.sale === "YES" ? "realizada" : "não realizada"}</h2></div><button className="icon-button" type="button" onClick={() => setFinalizationOpen(false)} aria-label="Fechar"><X size={20}/></button></div><form onSubmit={finalize}><div className="modal-body">{form.sale === "YES" && <Field label="Número da ordem" htmlFor="order-number" hint="Digite somente os números." required><input id="order-number" value={form.order_number} onChange={(event) => update("order_number", event.target.value.replace(/\D/g, ""))} inputMode="numeric" autoFocus required /></Field>}<Field label="Classificação final" htmlFor="outcome-detail" required><SearchableSelect id="outcome-detail" value={form.outcome_detail} onChange={(value) => update("outcome_detail", value)} options={(form.sale === "YES" ? saleOutcomes : nonSaleOutcomes).map((item) => ({ value: item, label: item }))} required /></Field>{error && <p className="form-error" role="alert">{error}</p>}</div><div className="modal-footer"><Button type="button" variant="ghost" onClick={() => setFinalizationOpen(false)}>Voltar</Button><Button type="submit" busy={busy}>Finalizar atendimento</Button></div></form></div></div>}
     {notice && <div className="toast" role="status"><CheckCircle2 size={19} />{notice}</div>}
     <Card style={{ marginTop: 22 }}><div className="card-header"><div><h2>Atendimentos do dia</h2><p>{items.length} registro{items.length === 1 ? "" : "s"} na loja selecionada</p></div><div className="table-search"><Search size={17}/><input aria-label="Pesquisar atendimentos" placeholder="Senha, CPF/CNPJ ou consultor" value={search} onChange={(e) => setSearch(e.target.value)} /></div></div>
-      {filtered.length ? <div className="table-wrap"><table><thead><tr><th>Senha</th><th>Atuação</th><th>CPF/CNPJ</th><th>Plano</th><th>Oportunidade</th><th>Não oportunidade</th><th>FTTH</th><th>Disp. venda</th><th>Venda</th><th>Motivo</th><th>Consultor</th><th>Horário</th><th>Ações</th></tr></thead><tbody>{filtered.map((item) => <tr key={item.id}><td className="numeric"><strong>{item.password_number.toString().padStart(3,"0")}</strong></td><td>{item.activity || "—"}</td><td className="numeric">{item.cpf_cnpj}</td><td>{item.current_plan || "—"}</td><td>{item.opportunity || "—"}</td><td>{item.non_opportunity || "—"}</td><td><StatusBadge value={item.ftth_available}/></td><td><StatusBadge value={item.available_for_sale}/></td><td><StatusBadge value={item.sale}/></td><td>{item.reason_id ? reasonName[item.reason_id] : "—"}</td><td>{consultantName[item.consultant_id] ?? "—"}</td><td className="numeric">{new Date(item.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</td><td><div className="row-actions"><button onClick={() => edit(item)} aria-label={`Editar senha ${item.password_number}`}><Pencil size={16}/></button><button className="danger" onClick={() => remove(item)} aria-label={`Excluir senha ${item.password_number}`}><Trash2 size={16}/></button></div></td></tr>)}</tbody></table></div> : <EmptyState title={store ? "Nenhum atendimento encontrado" : "Selecione uma loja"} description={store ? "Registre o primeiro atendimento ou ajuste a pesquisa." : "Os atendimentos do dia aparecerão aqui."} />}
+      {filtered.length ? <div className="table-wrap"><table><thead><tr><th>Senha</th><th>Atuação</th><th>CPF/CNPJ</th><th>Plano</th><th>Oportunidade</th><th>Não oportunidade</th><th>FTTH</th><th>Disp. venda</th><th>Venda</th><th>Ordem</th><th>Classificação final</th><th>Motivo</th><th>Consultor</th><th>Horário</th><th>Ações</th></tr></thead><tbody>{filtered.map((item) => <tr key={item.id}><td className="numeric"><strong>{item.password_number.toString().padStart(3,"0")}</strong></td><td>{item.activity || "—"}</td><td className="numeric">{item.cpf_cnpj}</td><td>{item.current_plan || "—"}</td><td>{item.opportunity || "—"}</td><td>{item.non_opportunity || "—"}</td><td><StatusBadge value={item.ftth_available}/></td><td><StatusBadge value={item.available_for_sale}/></td><td><StatusBadge value={item.sale}/></td><td className="numeric">{item.order_number || "—"}</td><td>{item.outcome_detail || "—"}</td><td>{item.reason_id ? reasonName[item.reason_id] : "—"}</td><td>{consultantName[item.consultant_id] ?? "—"}</td><td className="numeric">{new Date(item.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</td><td><div className="row-actions"><button onClick={() => edit(item)} aria-label={`Editar senha ${item.password_number}`}><Pencil size={16}/></button><button className="danger" onClick={() => remove(item)} aria-label={`Excluir senha ${item.password_number}`}><Trash2 size={16}/></button></div></td></tr>)}</tbody></table></div> : <EmptyState title={store ? "Nenhum atendimento encontrado" : "Selecione uma loja"} description={store ? "Registre o primeiro atendimento ou ajuste a pesquisa." : "Os atendimentos do dia aparecerão aqui."} />}
       {store && <div className="table-footer"><Button variant="ghost" onClick={loadDay}><RefreshCw size={16}/> Atualizar lista</Button></div>}
     </Card>
   </>;

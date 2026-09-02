@@ -55,8 +55,17 @@ h2 { margin-bottom: 4px; font-size: 1.12rem; letter-spacing: -.015em; }
 .app-content { min-height: 100dvh; padding-left: 248px; background: var(--canvas); }
 .app-content main { width: min(100%, 1488px); margin: 0 auto; padding: 36px 40px 64px; outline: none; }
 
-.page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
 .page-header p { max-width: 650px; margin-bottom: 0; color: var(--muted); }
+.unused-passwords { min-width: 248px; max-width: 320px; padding: 12px 14px; background: #fff6ed; border: 1px solid #f0d3b3; border-radius: 12px; }
+.unused-passwords-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.unused-passwords-head span { color: #9a5b12; font-size: .72rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+.unused-passwords-head strong { color: #7a4510; font-family: "Geist Mono", ui-monospace, monospace; font-size: .92rem; }
+.unused-passwords-list { margin: 0; color: #5c3a16; font-family: "Geist Mono", ui-monospace, monospace; font-size: .92rem; font-variant-numeric: tabular-nums; font-weight: 650; }
+.unused-passwords-empty { margin: 0; color: #8a6840; font-size: .82rem; }
+.unused-passwords .button { min-height: 36px; margin-top: 8px; padding-inline: 10px; color: #7a4510; }
+.unused-password-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; max-height: min(420px, 56dvh); overflow-y: auto; padding-right: 4px; }
+.unused-password-chip { display: grid; min-height: 44px; place-items: center; color: #5c3a16; background: #fff6ed; border: 1px solid #f0d3b3; border-radius: 9px; font-family: "Geist Mono", ui-monospace, monospace; font-weight: 700; }
 .eyebrow { display: block; min-height: 18px; margin-bottom: 6px; color: var(--primary); font-size: .74rem; font-weight: 750; letter-spacing: .09em; text-transform: uppercase; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
 .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px 22px 0; }
@@ -156,5 +165,5 @@ tbody tr:hover { background: #f8fbfb; } tbody tr:last-child td { border-bottom: 
   .content-grid, .chart-grid { grid-template-columns: 1fr; }.login-page { grid-template-columns: 1fr; }.login-visual { display: none; }
 }
 @media (max-width: 620px) {
-  .app-content main { padding: 24px 16px 48px; }.page-header { align-items: flex-start; flex-direction: column; margin-bottom: 22px; }.page-header .button-row, .page-header .button { width: 100%; }.metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }.metric-card { min-height: 116px; padding: 15px; }.metric-value { font-size: 1.45rem; }.form-grid, .context-grid, .filters { grid-template-columns: 1fr; }.form-grid .span-2 { grid-column: auto; }.card-header, .card-body { padding-inline: 16px; }.card-header { align-items: flex-start; flex-direction: column; }.table-search { width: 100%; }.filters { padding: 14px; }.login-panel { padding: 32px 22px; }.visual-stats { grid-template-columns: 1fr; }.toast { right: 16px; bottom: 16px; }.form-actions { align-items: stretch; flex-direction: column-reverse; }.form-actions .button { width: 100%; }
+  .app-content main { padding: 24px 16px 48px; }.page-header { align-items: flex-start; flex-direction: column; margin-bottom: 22px; }.page-header .button-row, .page-header .button, .unused-passwords { width: 100%; max-width: none; }.unused-password-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }.metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }.metric-card { min-height: 116px; padding: 15px; }.metric-value { font-size: 1.45rem; }.form-grid, .context-grid, .filters { grid-template-columns: 1fr; }.form-grid .span-2 { grid-column: auto; }.card-header, .card-body { padding-inline: 16px; }.card-header { align-items: flex-start; flex-direction: column; }.table-search { width: 100%; }.filters { padding: 14px; }.login-panel { padding: 32px 22px; }.visual-stats { grid-template-columns: 1fr; }.toast { right: 16px; bottom: 16px; }.form-actions { align-items: stretch; flex-direction: column-reverse; }.form-actions .button { width: 100%; }
 }

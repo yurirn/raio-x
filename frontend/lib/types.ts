@@ -29,6 +29,13 @@ export interface StoreContext {
   store_name: string;
 }
 
+export interface UnusedPasswords {
+  date: string;
+  store_id: number;
+  items: number[];
+  total: number;
+}
+
 export interface Attendance {
   id: number;
   date: string;
@@ -41,6 +48,8 @@ export interface Attendance {
   ftth_available: YesNo;
   available_for_sale: YesNo;
   sale: YesNo;
+  order_number: string | null;
+  outcome_detail: string | null;
   reason_id: number | null;
   consultant_id: number;
   store_id: number;
