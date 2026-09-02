@@ -144,10 +144,12 @@ export default function EntryPage() {
           <Field label="CPF/CNPJ" htmlFor="cpf" hint="Zeros à esquerda serão preservados." required><input id="cpf" value={form.cpf_cnpj} onChange={(e) => update("cpf_cnpj", e.target.value)} inputMode="numeric" autoComplete="off" maxLength={18} required /></Field>
           <Field label="Plano atual" htmlFor="plan"><SearchableSelect id="plan" value={form.current_plan} onChange={(value) => update("current_plan", value)} options={plans.map((plan) => ({ value: plan, label: plan }))} /></Field>
         </div>
-        <div className="form-grid">
+        <div className="entry-flags">
           <YesNoField label="Cliente já possui Fibra-Total?" name="fiber-total" value={form.has_fiber_total} onChange={(value) => update("has_fiber_total", value)} />
-          <div className="span-full"><Field label="Classificação" htmlFor="classification-Disp Venda" required><div className="choice-board" role="radiogroup" aria-label="Classificação">{opportunityChoices.map((group) => <div className="choice-group" key={group.group}><strong>{group.group}</strong>{group.values.map((item) => <label className="choice-option" key={item} htmlFor={`classification-${item}`}><input id={`classification-${item}`} type="radio" name="classification" value={item} checked={(form.opportunity || form.non_opportunity) === item} onChange={() => selectClassification(item)} required />{item}</label>)}</div>)}</div></Field></div>
           <YesNoField label="Possui disponibilidade FTTH?" name="ftth" value={form.ftth_available} onChange={(value) => update("ftth_available", value)} />
+          <Field label="Classificação" htmlFor="classification-Disp Venda" required><div className="choice-board" role="radiogroup" aria-label="Classificação">{opportunityChoices.map((group) => <div className="choice-group" key={group.group}><strong>{group.group}</strong>{group.values.map((item) => <label className="choice-option" key={item} htmlFor={`classification-${item}`}><input id={`classification-${item}`} type="radio" name="classification" value={item} checked={(form.opportunity || form.non_opportunity) === item} onChange={() => selectClassification(item)} required />{item}</label>)}</div>)}</div></Field>
+        </div>
+        <div className="form-grid">
           <YesNoField label="Venda realizada?" name="sale" value={form.sale} onChange={(value) => { update("sale", value); update("reason_id", ""); update("order_number", ""); update("outcome_detail", ""); }} />
         </div>
         {error && <p className="form-error" role="alert">{error}</p>}
