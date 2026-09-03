@@ -26,7 +26,7 @@ const opportunityChoices = [
   { group: "Não oport.", values: nonOpportunities },
 ] as const;
 const saleOutcomes = ["Fibra avulsa", "Vivo Total", "Totalização", "PJ"];
-const nonSaleOutcomes = ["Não é decisor", "Não quer fibra", "Oferta concorrência", "PJ"];
+const nonSaleOutcomes = ["Não é decisor", "Não quer fibra", "Oferta concorrência", "PJ", "Já possui"];
 const unusedPreviewLimit = 5;
 const initialForm = { password_number: "", activity: "", cpf_cnpj: "", current_plan: "", opportunity: "", non_opportunity: "", has_fiber_total: "" as YesNo | "", ftth_available: "" as YesNo | "", available_for_sale: "NO" as YesNo, sale: "" as YesNo | "", order_number: "", outcome_detail: "", reason_id: "", consultant_id: "" };
 

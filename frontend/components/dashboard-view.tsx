@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, Download, RadioTower, ShoppingBag, TicketCheck, TrendingUp, Users } from "lucide-react";
+import { Activity, ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, Download, RadioTower, TicketCheck, TrendingUp, Users } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api, download } from "@/lib/api";
@@ -18,10 +18,10 @@ function Metric({ label, value, icon: Icon }: { label: string; value: string | n
   return <Card className="metric-card"><span className="metric-icon"><Icon size={19} /></span><span className="metric-label">{label}</span><strong className="metric-value">{value}</strong></Card>;
 }
 
-type SortKey = "passwords" | "ftth_available" | "available_for_sale" | "sales" | "share_passwords" | "availability_percentage" | "availability_real_percentage" | "conversion";
+type SortKey = "passwords" | "ftth_available" | "sales" | "share_passwords" | "availability_percentage" | "availability_real_percentage" | "conversion";
 type TableRow = Record<SortKey, number> & { id: number; name: string };
 const columns: Array<{ key: SortKey; label: string; suffix?: string }> = [
-  { key: "passwords", label: "Senhas" }, { key: "ftth_available", label: "FTTH" }, { key: "available_for_sale", label: "Disp. venda" }, { key: "sales", label: "Vendas" }, { key: "share_passwords", label: "Participação", suffix: "%" }, { key: "availability_percentage", label: "Disponibilidade", suffix: "%" }, { key: "availability_real_percentage", label: "Disp. real", suffix: "%" }, { key: "conversion", label: "Conversão", suffix: "%" },
+  { key: "passwords", label: "Senhas" }, { key: "ftth_available", label: "FTTH" }, { key: "sales", label: "Vendas" }, { key: "share_passwords", label: "Participação", suffix: "%" }, { key: "availability_percentage", label: "Disponibilidade", suffix: "%" }, { key: "availability_real_percentage", label: "Disp. real", suffix: "%" }, { key: "conversion", label: "Conversão", suffix: "%" },
 ];
 
 function PerformanceTable({ title, description, entity, rows }: { title: string; description: string; entity: string; rows: TableRow[] }) {
@@ -75,8 +75,8 @@ export function DashboardView({ overview = false }: { overview?: boolean }) {
       <Field label="Plano atual" htmlFor="current-plan"><SearchableSelect id="current-plan" value={currentPlan} onChange={setCurrentPlan} placeholder="Todos" options={currentPlans.map((item) => ({ value: item, label: item }))} /></Field>
     </Card>}
     {error && <p className="form-error" role="alert">{error} <button onClick={load}>Tentar novamente</button></p>}
-    {loading ? <div className="metrics-grid">{Array.from({ length: 6 }, (_, index) => <Skeleton key={index} height={126} />)}</div> : <div className="metrics-grid">
-      <Metric label="Total de senhas" value={cards?.passwords ?? 0} icon={TicketCheck} /><Metric label="Com disponibilidade" value={cards?.ftth_available ?? 0} icon={RadioTower} /><Metric label="Disponível para venda" value={cards?.available_for_sale ?? 0} icon={ShoppingBag} /><Metric label="Vendas" value={cards?.sales ?? 0} icon={TrendingUp} /><Metric label="Conversão" value={`${(cards?.conversion ?? 0).toLocaleString("pt-BR")}%`} icon={Activity} /><Metric label="Consultores ativos" value={cards?.active_consultants ?? 0} icon={Users} />
+    {loading ? <div className="metrics-grid">{Array.from({ length: 5 }, (_, index) => <Skeleton key={index} height={126} />)}</div> : <div className="metrics-grid">
+      <Metric label="Total de senhas" value={cards?.passwords ?? 0} icon={TicketCheck} /><Metric label="Com disponibilidade" value={cards?.ftth_available ?? 0} icon={RadioTower} /><Metric label="Vendas" value={cards?.sales ?? 0} icon={TrendingUp} /><Metric label="Conversão" value={`${(cards?.conversion ?? 0).toLocaleString("pt-BR")}%`} icon={Activity} /><Metric label="Consultores ativos" value={cards?.active_consultants ?? 0} icon={Users} />
     </div>}
     <div className="content-grid">
       <Card><div className="card-header"><div><h2>Movimento diário</h2><p>Senhas registradas por dia</p></div><CalendarDays size={19} color="#64748b" /></div><div className="chart-wrap">{data?.daily.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={data.daily}><CartesianGrid stroke="#e8edf1" vertical={false}/><XAxis dataKey="date" tickFormatter={brDate} tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false}/><YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false}/><Tooltip labelFormatter={(value) => brDate(String(value))}/><Bar dataKey="passwords" name="Senhas" fill="#0f766e" radius={[6, 6, 0, 0]}/></BarChart></ResponsiveContainer> : <EmptyState title="Sem movimento no período" description="Os dados aparecerão aqui após o primeiro atendimento." />}</div></Card>
