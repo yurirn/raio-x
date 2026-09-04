@@ -299,8 +299,6 @@ def update_attendance(
                 status_code=422,
                 detail="Número da ordem deve ser informado apenas para venda realizada",
             )
-        if attendance.order_number and not attendance.order_number.isdigit():
-            raise HTTPException(status_code=422, detail="Número da ordem deve conter apenas números")
     validate_reason(session, attendance.sale, attendance.reason_id)
     consultant = session.get(Consultant, attendance.consultant_id)
     if not consultant or consultant.store_id != attendance.store_id:

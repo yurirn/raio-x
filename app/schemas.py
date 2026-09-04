@@ -145,8 +145,6 @@ class AttendanceIn(BaseModel):
             raise ValueError("Número da ordem é obrigatório para venda realizada")
         if self.sale == YesNo.NO and self.order_number:
             raise ValueError("Número da ordem deve ser informado apenas para venda realizada")
-        if self.order_number and not self.order_number.isdigit():
-            raise ValueError("Número da ordem deve conter apenas números")
         return self
 
 

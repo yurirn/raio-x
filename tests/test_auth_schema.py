@@ -88,3 +88,25 @@ def test_attendance_accepts_optional_opportunity_classification():
 
     assert empty.opportunity is None
     assert attendance.non_opportunity == "Dívida"
+
+
+def test_attendance_accepts_alphanumeric_order_number():
+    attendance = AttendanceIn(
+        date="2026-08-26",
+        password_number=123,
+        activity="Físico",
+        cpf_cnpj="01234567890",
+        has_fiber_total="NO",
+        ftth_available="YES",
+        available_for_sale="YES",
+        sale="YES",
+        order_number="PJ-ABC123",
+        outcome_detail="PJ",
+        opportunity="Disp Venda",
+        consultant_id=1,
+        store_id=1,
+        coordinator_id=1,
+        regional_id=1,
+    )
+
+    assert attendance.order_number == "PJ-ABC123"

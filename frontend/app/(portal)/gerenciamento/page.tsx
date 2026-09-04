@@ -64,7 +64,7 @@ export default function ManagementPage() {
         <td className="numeric">{item.password_number.toString().padStart(3, "0")}</td>
         <td className="numeric">{item.cpf_cnpj}</td>
         <td>{item.current_plan || "—"}</td>
-        <td className="numeric">{item.order_number || "—"}</td>
+        <td>{item.order_number || "—"}</td>
         <td>{item.outcome_detail || "—"}</td>
         <td>{names[item.consultant_id] ?? `#${item.consultant_id}`}</td>
         <td><select className="status-select" value={item.sale_status || "Aguardando Instalação"} disabled={saving === item.id} aria-label={`Status da senha ${item.password_number}`} onChange={(event) => changeStatus(item, event.target.value)}>{saleStatuses.map((option) => <option key={option} value={option}>{option}</option>)}</select></td>
